@@ -25,4 +25,11 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    
+    // Google APIs
+    implementation 'com.google.android.gms:play-services-nearby:11.8.0'     // Google Nearby
+    implementation 'com.google.android.gms:play-services-places:11.8.0'     // Google Places
+    implementation 'com.google.android.gms:play-services-maps:11.8.0'       // Google Maps
+    implementation 'com.google.android.gms:play-services-location:11.8.0'   // Google Location and Activity Recognition
+    // TODO: Might not need all of these! Check your notes which ones to keep!
 }
