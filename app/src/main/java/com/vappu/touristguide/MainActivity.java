@@ -19,4 +19,6 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
     }
+
+    // TODO request runtime permission
 }
