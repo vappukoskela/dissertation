@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -13,7 +14,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void openMap(View view) {
-
-
+        // Placeholder button
+        // tackling the location stuff first
+        Intent intent = new Intent(this, MapActivity.class);
+        startActivity(intent);
     }
 }
