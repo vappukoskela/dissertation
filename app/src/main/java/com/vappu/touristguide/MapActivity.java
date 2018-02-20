@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -272,5 +273,10 @@ public class MapActivity extends AppCompatActivity
     @Override
     public void onPoiClick(PointOfInterest pointOfInterest) {
         Toast.makeText(this, "clicked " + pointOfInterest.name, Toast.LENGTH_SHORT).show();
+
+        // once clicking point of interest, open the info activity for that POI
+        // TODO bundle up info about that poi
+        Intent intent = new Intent(this, InfoActivity.class);
+        startActivity(intent);
     }
 }
