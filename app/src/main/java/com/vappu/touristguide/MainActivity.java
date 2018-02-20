@@ -20,5 +20,6 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    // TODO request runtime permission
+    // TODO create a prompt to ask user for permissions
+
 }
