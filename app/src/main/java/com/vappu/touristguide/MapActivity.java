@@ -275,8 +275,8 @@ public class MapActivity extends AppCompatActivity
         Toast.makeText(this, "clicked " + pointOfInterest.name, Toast.LENGTH_SHORT).show();
 
         // once clicking point of interest, open the info activity for that POI
-        // TODO bundle up info about that poi
         Intent intent = new Intent(this, InfoActivity.class);
+        intent.putExtra("poiID", pointOfInterest.placeId);
         startActivity(intent);
     }
 }
