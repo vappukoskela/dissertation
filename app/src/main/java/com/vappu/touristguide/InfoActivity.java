@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -12,6 +13,11 @@ import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import java.io.IOException;
+import java.net.URL;
+
+import javax.net.ssl.HttpsURLConnection;
 
 public class InfoActivity extends AppCompatActivity {
 
@@ -27,12 +33,18 @@ public class InfoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_info);
 
         final TextView title = (TextView) findViewById(R.id.infoText);
+        final TextView body = (TextView) findViewById(R.id.contentText);
 
         // initialise mGeoDataClient
         mGeoDataClient = Places.getGeoDataClient(this, null);
 
         // get extras with intent
         Bundle extras = getIntent().getExtras();
+
+
+        // This fetches the place name by Google's place ID
+        // a smarter way to do this to enable the use of the wiki API would be to search by name
+        // although names can sometimes be tricky!
 
         // check if null
         if (extras != null) {
@@ -56,8 +68,45 @@ public class InfoActivity extends AppCompatActivity {
                 }
             });
 
+
+            // New thread to handle network connection
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // define endpoint
+                        URL wikiEndPoint = new URL("https://en.wikipedia.org/w/api.php");
+                        // open connection
+                        HttpsURLConnection connection = (HttpsURLConnection) wikiEndPoint.openConnection();
+                        // set up request headers
+                        connection.setRequestProperty("User-Agent", "tourist-guide");
+
+                        // check if connected successfully
+                        if(connection.getResponseCode() == 200){
+                            // everything is fine!
+                            Log.d(TAG, "response code 200");
+                        }
+                        else {
+                            // error, log it
+                            // TODO might need some error handling
+                            Log.e(TAG, "response code " + connection.getResponseCode());
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+            });
+
+
         }
-        // TODO based on ID fetch name and all other info
+
+        // using https://en.wikipedia.org/api/rest_v1/#!/Page_content/get_page_summary_title
+        // to get page summaries from the wikimedia API
 
     }
+
+
 }
