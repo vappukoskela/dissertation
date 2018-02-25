@@ -1,6 +1,5 @@
 package com.vappu.touristguide;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -13,11 +12,6 @@ import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-
-import java.io.IOException;
-import java.net.URL;
-
-import javax.net.ssl.HttpsURLConnection;
 
 public class InfoActivity extends AppCompatActivity {
 
@@ -40,6 +34,9 @@ public class InfoActivity extends AppCompatActivity {
 
         // get extras with intent
         Bundle extras = getIntent().getExtras();
+
+        WikiConnHandler wikiConnHandler = new WikiConnHandler("");
+        body.setText(wikiConnHandler.getSummary());
 
 
         // This fetches the place name by Google's place ID
@@ -68,37 +65,6 @@ public class InfoActivity extends AppCompatActivity {
                 }
             });
 
-
-            // New thread to handle network connection
-            AsyncTask.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // define endpoint
-                        URL wikiEndPoint = new URL("https://en.wikipedia.org/w/api.php");
-                        // open connection
-                        HttpsURLConnection connection = (HttpsURLConnection) wikiEndPoint.openConnection();
-                        // set up request headers
-                        connection.setRequestProperty("User-Agent", "tourist-guide");
-
-                        // check if connected successfully
-                        if(connection.getResponseCode() == 200){
-                            // everything is fine!
-                            Log.d(TAG, "response code 200");
-                        }
-                        else {
-                            // error, log it
-                            // TODO might need some error handling
-                            Log.e(TAG, "response code " + connection.getResponseCode());
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-
-                }
-
-            });
 
 
         }
