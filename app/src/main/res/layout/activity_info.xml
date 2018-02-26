@@ -17,13 +17,14 @@
             android:layout_height="wrap_content"
             android:paddingEnd="20dp"
             android:paddingStart="20dp"
-            android:text="Title"
             android:textAppearance="@android:style/TextAppearance.Material.Headline" />
 
         <TextView
             android:id="@+id/contentText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingEnd="20dp"
+            android:paddingStart="20dp"
             android:textAppearance="@android:style/TextAppearance.Material.Body1" />
 
     </LinearLayout>

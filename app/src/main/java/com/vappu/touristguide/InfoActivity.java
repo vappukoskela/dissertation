@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -41,7 +42,6 @@ public class InfoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
 
-        title = (TextView) findViewById(R.id.infoText);
 
         // initialise mGeoDataClient
         mGeoDataClient = Places.getGeoDataClient(this, null);
@@ -50,11 +50,13 @@ public class InfoActivity extends AppCompatActivity {
         Bundle extras = getIntent().getExtras();
 
 
-        // set parameters for the task
-        FetchTaskParams params = new FetchTaskParams("extract", "Nottingham_Castle");
+        // set parameters for the tasks
+        FetchTaskParams paramsKey = new FetchTaskParams("title", "Nottingham_Castle");
+        FetchTaskParams paramsSummary = new FetchTaskParams("extract", "Nottingham_Castle");
 
-        // start background task of fetching the summary
-        new FetchInfoTask().execute(params);
+        // start background tasks for fetching the title and the summary
+        new FetchInfoTask().execute(paramsKey);
+        new FetchInfoTask().execute(paramsSummary);
 
 
         // TODO get rid of this
@@ -74,7 +76,7 @@ public class InfoActivity extends AppCompatActivity {
                         Place myPlace = places.get(0);
                         Log.i(TAG, "Place found: " + myPlace.getName());
 
-                        title.setText(myPlace.getName());
+                        //title.setText(myPlace.getName());
 
                         // release PlaceBufferResponse object
                         places.release();
@@ -100,20 +102,23 @@ public class InfoActivity extends AppCompatActivity {
 
     // using https://en.wikipedia.org/api/rest_v1/#!/Page_content/get_page_summary_title
     // to get page summaries from the wikimedia API
+    @SuppressLint("StaticFieldLeak")
     private class FetchInfoTask extends AsyncTask<FetchTaskParams, Integer, String> {
+
+        private String key;
 
         // JSON passed as a String, parse it and return the content of the desired identifier
         private String parseJSON(String jsonString, String key) {
             Log.d(TAG, "parseJSON");
             String result = null;
-            JSONObject jsonObject = null;
+            JSONObject jsonObject;
             try {
                 jsonObject = new JSONObject(jsonString);
                 result = jsonObject.get(key).toString();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            Log.d(TAG, result); // debug
+            //Log.d(TAG, result); // debug
             return result;
         }
 
@@ -122,11 +127,21 @@ public class InfoActivity extends AppCompatActivity {
             super.onPostExecute(resultString);
             Log.d(TAG, "onPostExecute");
 
-            // after executed, set the text on body to be the parsed string
-            // TODO needs to be general enough for titles too - switch statement/other strategy
-            TextView body = (TextView) findViewById(R.id.contentText);
-            body.setText(resultString);
-
+            // after executed, set the text on body or title to be the parsed string
+            switch (key){
+                case "extract":
+                    TextView body = (TextView) findViewById(R.id.contentText);
+                    body.setText(resultString);
+                    break;
+                case "title":
+                    TextView title = (TextView) findViewById(R.id.infoText);
+                    title.setText(resultString);
+                    break;
+                default:
+                    // invalid key, does not match either of the required options
+                    Log.e(TAG, "Invalid key onPostExecute");
+                    break;
+            }
         }
 
         @Override
@@ -146,7 +161,7 @@ public class InfoActivity extends AppCompatActivity {
                 publishProgress(i);
 
                 // key is the identifier want to fetch e.g. summary ("extract"), title, etc.
-                String key = fetchTaskParams[0].key;
+                key = fetchTaskParams[0].key;
 
                 // page to be used to select the correct wiki page
                 String page = fetchTaskParams[0].page;
@@ -165,10 +180,13 @@ public class InfoActivity extends AppCompatActivity {
                     Log.d(TAG, "response code 200");
                 } else {
                     // error, log it
-                    // TODO needs error handling
-                    // this most often happens when phone not connected to the internet and can't connect to the API
-                    // has to communicate this to the user visually! Otherwise will just show a blank page!
                     Log.e(TAG, "response code " + connection.getResponseCode());
+
+                    // display error message for the user. Most often the error would result from
+                    // the lack of internet connection (can't connect to the API
+                    if(key.equals("extract")){
+                        result = "Error: " + connection.getResponseCode() + ", please check your internet connection";
+                    }
                 }
 
                 // Get JSON
