@@ -26,8 +26,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PointOfInterest;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
@@ -66,6 +64,7 @@ public class MapActivity extends AppCompatActivity
     // Keys for storing activity state.
     private static final String KEY_CAMERA_POSITION = "camera_position";
     private static final String KEY_LOCATION = "location";
+
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallBack;
 
@@ -96,9 +95,11 @@ public class MapActivity extends AppCompatActivity
                     Log.d(TAG, "location " + location.toString());
 
                     mLastKnownLocation = location;
+
+                    // move camera to center the user and keep current zoom level
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                             new LatLng(mLastKnownLocation.getLatitude(),
-                                    mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
+                                    mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
                 }
             }
         };
@@ -150,9 +151,6 @@ public class MapActivity extends AppCompatActivity
         // Ask for location updates
         startLocationUpdates();
 
-        // Get the current location of the device and set the position of the map.
-    //    getDeviceLocation();
-
         // listen for clicks at Points of Interests allowing to display info that user wants to see
         mMap.setOnPoiClickListener(this);
     }
@@ -161,6 +159,8 @@ public class MapActivity extends AppCompatActivity
     private void startLocationUpdates() {
         try {
             if(mLocationPermissionGranted) {
+                // start at the default position and obtain the default zoom
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mDefaultLocation, DEFAULT_ZOOM));
                 mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallBack, null);
             }
             else {
@@ -176,43 +176,7 @@ public class MapActivity extends AppCompatActivity
 
     }
 
-    // get the current location of the device
-    // update camera
-    private void getDeviceLocation() {
-        Log.d(TAG, "getDeviceLocation");
-
-        try {
-            if (mLocationPermissionGranted) {
-                Task<Location> locationResult = mFusedLocationProviderClient.getLastLocation();
-                locationResult.addOnCompleteListener(this, new OnCompleteListener<Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Location> task) {
-                        if (task.isSuccessful()) {
-                            // Set the map's camera position to the current location of the device.
-                            mLastKnownLocation = task.getResult();
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                    new LatLng(mLastKnownLocation.getLatitude(),
-                                            mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
-                            Log.d(TAG, "onCompleteListener isSuccesful");
-
-
-                        } else {
-                            Log.d(TAG, "Current location is null. Using defaults.");
-                            Log.e(TAG, "Exception: %s", task.getException());
-                            mMap.moveCamera(CameraUpdateFactory
-                                    .newLatLngZoom(mDefaultLocation, DEFAULT_ZOOM));
-                            mMap.getUiSettings().setMyLocationButtonEnabled(false);
-                        }
-                    }
-                });
-            }
-        } catch (SecurityException e)  {
-            Log.e("Exception: %s", e.getMessage());
-        }
-    }
-
-
-    // ask user for permissions
+    // get permissions
     private void getLocationPermission() {
         Log.d(TAG, "getLocationPermission");
 
