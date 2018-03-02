@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -18,6 +19,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
+import com.google.android.gms.location.places.PlaceLikelihood;
+import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -26,6 +29,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PointOfInterest;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
@@ -88,11 +93,17 @@ public class MapActivity extends AppCompatActivity
         // Construct a FusedLocationProviderClient.
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
+
         mLocationCallBack = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     Log.d(TAG, "location " + location.toString());
+
+                    if (location != mLastKnownLocation){
+                        // if location changed check again
+                        checkLikelyPlaces(location);
+                    }
 
                     mLastKnownLocation = location;
 
@@ -116,11 +127,37 @@ public class MapActivity extends AppCompatActivity
 
     }
 
+    // adapted from https://developers.google.com/places/android-api/current-place#get-current
+    @SuppressLint("MissingPermission")
+    private void checkLikelyPlaces(Location location) {
+        Log.d(TAG, "checkLikelyPlaces " + location);
+        if(mLocationPermissionGranted) {
+            // TODO add filters
+            Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
+            placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                @Override
+                public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                    PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+                    for (PlaceLikelihood placeLikelihood : likelyPlaces) {
+                        Log.i(TAG, String.format("Place '%s' has likelihood: %g",
+                                placeLikelihood.getPlace().getName(),
+                                placeLikelihood.getLikelihood()));
+                        if(placeLikelihood.getLikelihood() > 0.7 ){
+                            Toast.makeText(MapActivity.this, "You are at " + placeLikelihood.getPlace().getName(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                    // release PlaceLikelihoodBufferResponse
+                    likelyPlaces.release();
+                    likelyPlaces.close();
+                }
+            });
+        }
+    }
+
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
-//        startLocationUpdates();
     }
 
     @Override
