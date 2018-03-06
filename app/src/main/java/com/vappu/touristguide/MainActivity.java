@@ -5,11 +5,14 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ToggleButton;
 
 public class MainActivity extends AppCompatActivity {
 
     // tag for logs
     private final String TAG = MainActivity.class.getSimpleName();
+
+    ToggleButton toggleButton;
 
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
@@ -24,18 +27,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        toggleButton = findViewById(R.id.toggleButton);
+
         // find out if the service is already running
         if(savedInstanceState != null) {
             mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
         } else { mIsServiceRunning = false; } // if there was no saved instance, should start the service
 
-        if(!mIsServiceRunning){
-            // start location service
-            // location needs to be accessed when app is running on the background
-
-            Intent intent = new Intent(this, LocationService.class);
-            startService(intent);
-        }
+        // if there is a service running set togglebutton to reflect state appropriately
+        if(mIsServiceRunning){
+            toggleButton.setChecked(true);
+        } else { toggleButton.setChecked(false); }
 
     }
 
@@ -52,6 +54,24 @@ public class MainActivity extends AppCompatActivity {
         // tackling the location stuff first
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
+    }
+
+    public void startService(View view) {
+        Log.d(TAG, "startService");
+        Intent intent = new Intent(this, LocationService.class);
+        if (!mIsServiceRunning){
+            // toggle button has been clicked - start service
+            Log.d(TAG, "Starting LocationService...");
+            startService(intent);
+        }
+        else {
+            if( mIsServiceRunning ){
+                // stop service if there is service running
+                Log.d(TAG, "Stopping LocationService...");
+                stopService(intent);
+            }
+            // if service isn't running anyway do nothing
+        }
     }
 
     // TODO create a prompt to ask user for permissions
