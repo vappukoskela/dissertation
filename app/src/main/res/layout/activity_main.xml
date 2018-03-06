@@ -18,7 +18,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/colorAccent"
+            android:textColor="@color/colorTextLight"
             android:onClick="startService"
+            android:paddingBottom="20dp"
+            android:paddingTop="20dp"
             android:textOn="Stop locating"
             android:textOff="Start locating" />
 

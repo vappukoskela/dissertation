@@ -63,14 +63,13 @@ public class MainActivity extends AppCompatActivity {
             // toggle button has been clicked - start service
             Log.d(TAG, "Starting LocationService...");
             startService(intent);
+            mIsServiceRunning = true;
         }
         else {
-            if( mIsServiceRunning ){
-                // stop service if there is service running
-                Log.d(TAG, "Stopping LocationService...");
-                stopService(intent);
-            }
-            // if service isn't running anyway do nothing
+            // stop service if there is service running
+            Log.d(TAG, "Stopping LocationService...");
+            stopService(intent);
+            mIsServiceRunning = false;
         }
     }
 

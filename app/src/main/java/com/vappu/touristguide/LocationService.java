@@ -2,12 +2,14 @@ package com.vappu.touristguide;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
@@ -36,14 +38,21 @@ public class LocationService extends Service {
 
     // define TAG for logs
     private static final String TAG = LocationService.class.getSimpleName();
+
+    // the threshold which determines whether to send notification or not
+    private static final double PLACELIKELIHOODTHRESHOLD = 0.25;
+
+    // default location which will be used if location unavailable
+    private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
+
     private boolean mLocationPermissionGranted = false;
+
     private PlaceDetectionClient mPlaceDetectionClient;
     private LocationCallback mLocationCallBack;
     private Location mLastKnownLocation;
     private LocationRequest mLocationRequest;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
-    private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
     private NotificationManager notificationManager;
 
 
@@ -95,6 +104,7 @@ public class LocationService extends Service {
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
+        createInfoNotification("hi");
         startLocationUpdates();
     }
 
@@ -125,12 +135,27 @@ public class LocationService extends Service {
                 @Override
                 public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
                     PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+
+                    // get the top result of the likely places
+                    // i.e. the most likely place we are near of
+                    PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
+                    Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
+                            placeLikelihood.getLikelihood()));
+                    if ( placeLikelihood.getLikelihood() > 0.25 ){
+                        createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
+                    }
+
+
+                    /* don't necessarily need all of them!
+                    // keep this until sure won't need all
                     for (PlaceLikelihood placeLikelihood : likelyPlaces) {
                         Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                 placeLikelihood.getPlace().getName(),
                                 placeLikelihood.getLikelihood()));
 
                     }
+                    */
+
                     // release PlaceLikelihoodBufferResponse
                     likelyPlaces.release();
                     likelyPlaces.close();
@@ -156,12 +181,37 @@ public class LocationService extends Service {
         }
     }
 
+    public void createNotificationChannel(){
+        // check the sdk version so that only doing this if sdk 8.0 and higher
+        // since channels are a newer concept
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // tODO these strings should be in /res/
+            CharSequence name = "guideChannel";
+            String description = "channel for tourist guide proximity notifications";
+            String CHANNEL_ID = "channelID";
+
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
+            mChannel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = (NotificationManager) getSystemService(
+                    NOTIFICATION_SERVICE);
+            assert notificationManager != null;
+            notificationManager.createNotificationChannel(mChannel);
+        }
+
+    }
+
     public void createInfoNotification(String placeName){
+
+        createNotificationChannel();
+
         Log.d(TAG, "service createNotification");
         Intent notificationIntent = new Intent(this, InfoActivity.class);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification notification = new NotificationCompat.Builder(this)
+        Notification notification = new NotificationCompat.Builder(this, "channelID")
                 .setTicker(("message"))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle("Interesting Place Detected")
@@ -170,6 +220,7 @@ public class LocationService extends Service {
                 .setPriority(PRIORITY_HIGH)
                 .setAutoCancel(false)
                 .build();
+
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (notificationManager != null) {
@@ -195,6 +246,7 @@ public class LocationService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "service onUnbind");
+
 
 
         // TODO figure out how to stop it
