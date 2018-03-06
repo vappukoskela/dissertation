@@ -1,10 +1,13 @@
 package com.vappu.touristguide;
 
-import android.annotation.SuppressLint;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -19,8 +22,6 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
-import com.google.android.gms.location.places.PlaceLikelihood;
-import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -29,8 +30,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PointOfInterest;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
@@ -73,12 +72,19 @@ public class MapActivity extends AppCompatActivity
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallBack;
 
+    // service
+    private LocationService mLocationService;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        // bind to service
+        bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
@@ -88,23 +94,21 @@ public class MapActivity extends AppCompatActivity
 
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
-        // Construct a PlaceDetectionClient.
-        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         // Construct a FusedLocationProviderClient.
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+
+        // todo wont need these
+        // Construct a PlaceDetectionClient.
+  //      mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
+
 
 
         mLocationCallBack = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
-                    Log.d(TAG, "location " + location.toString());
-
-                    if (location != mLastKnownLocation){
-                        // if location changed check again
-                        checkLikelyPlaces(location);
-                    }
-
+                    //Log.d(TAG, "location " + location.toString());
                     mLastKnownLocation = location;
 
                     // move camera to center the user and keep current zoom level
@@ -125,13 +129,16 @@ public class MapActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+
     }
 
+    // todo wont need this
+    /*
     // adapted from https://developers.google.com/places/android-api/current-place#get-current
     @SuppressLint("MissingPermission")
     private void checkLikelyPlaces(Location location) {
         Log.d(TAG, "checkLikelyPlaces " + location);
-        if(mLocationPermissionGranted) {
+        if (mLocationPermissionGranted) {
             // TODO add filters
             Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
             placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
@@ -142,7 +149,7 @@ public class MapActivity extends AppCompatActivity
                         Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                 placeLikelihood.getPlace().getName(),
                                 placeLikelihood.getLikelihood()));
-                        if(placeLikelihood.getLikelihood() > 0.7 ){
+                        if (placeLikelihood.getLikelihood() > 0.7) {
                             Toast.makeText(MapActivity.this, "You are at " + placeLikelihood.getPlace().getName(), Toast.LENGTH_LONG).show();
                         }
                     }
@@ -153,6 +160,7 @@ public class MapActivity extends AppCompatActivity
             });
         }
     }
+    */
 
     @Override
     protected void onResume() {
@@ -192,27 +200,28 @@ public class MapActivity extends AppCompatActivity
         mMap.setOnPoiClickListener(this);
     }
 
+
     // https://developer.android.com/training/location/receive-location-updates.html
     private void startLocationUpdates() {
+
         try {
-            if(mLocationPermissionGranted) {
+            if (mLocationPermissionGranted) {
                 // start at the default position and obtain the default zoom
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mDefaultLocation, DEFAULT_ZOOM));
                 mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallBack, null);
-            }
-            else {
+            } else {
                 Log.d(TAG, "Current location is null. Using defaults.");
                 mMap.moveCamera(CameraUpdateFactory
                         .newLatLngZoom(mDefaultLocation, DEFAULT_ZOOM));
                 mMap.getUiSettings().setMyLocationButtonEnabled(false);
             }
-        }
-        catch ( SecurityException e ){
+        } catch (SecurityException e) {
             Log.e("Exception: %s", e.getMessage());
         }
-
     }
 
+
+    // todo can get this from elsewhere
     // get permissions
     private void getLocationPermission() {
         Log.d(TAG, "getLocationPermission");
@@ -266,7 +275,7 @@ public class MapActivity extends AppCompatActivity
                 mLastKnownLocation = null;
                 getLocationPermission();
             }
-        } catch (SecurityException e)  {
+        } catch (SecurityException e) {
             Log.e("Exception: %s", e.getMessage());
         }
     }
@@ -280,4 +289,24 @@ public class MapActivity extends AppCompatActivity
         intent.putExtra("poiID", pointOfInterest.placeId);
         startActivity(intent);
     }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            mLocationService = ((LocationService.LocalBinder) service).getService();
+            Log.d(TAG, "onServiceConnected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+            mLocationService = null;
+            Log.d(TAG, "onServiceDisconnected");
+
+        }
+    };
+
+
 }
+

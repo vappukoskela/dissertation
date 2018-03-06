@@ -30,6 +30,9 @@ public class MainActivity extends AppCompatActivity {
         } else { mIsServiceRunning = false; } // if there was no saved instance, should start the service
 
         if(!mIsServiceRunning){
+            // start location service
+            // location needs to be accessed when app is running on the background
+
             Intent intent = new Intent(this, LocationService.class);
             startService(intent);
         }
