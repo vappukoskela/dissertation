@@ -28,6 +28,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.Objects;
+
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
 
 
@@ -54,6 +56,7 @@ public class LocationService extends Service {
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private NotificationManager notificationManager;
+    private String mPreviousPlaceId = "";
 
 
     @Override
@@ -104,7 +107,6 @@ public class LocationService extends Service {
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-        createInfoNotification("hi");
         startLocationUpdates();
     }
 
@@ -141,10 +143,17 @@ public class LocationService extends Service {
                     PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
                     Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
                             placeLikelihood.getLikelihood()));
-                    if ( placeLikelihood.getLikelihood() > 0.25 ){
+
+                    String id = placeLikelihood.getPlace().getId();
+
+                    // is not the same place as previously notified
+                    // proximity over threshold
+                    if (!(Objects.equals(id, mPreviousPlaceId)) && placeLikelihood.getLikelihood() > 0.0 ){
                         createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
                     }
 
+                    // update previous place
+                    mPreviousPlaceId = id;
 
                     /* don't necessarily need all of them!
                     // keep this until sure won't need all
