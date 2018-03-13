@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.ToggleButton;
 
 public class MainActivity extends AppCompatActivity {
@@ -71,6 +72,16 @@ public class MainActivity extends AppCompatActivity {
             stopService(intent);
             mIsServiceRunning = false;
         }
+    }
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+    }
+
+    // TODO populate
+    private void populateListView(){
+        ListView listView = findViewById(R.id.list_view);
     }
 
     // TODO create a prompt to ask user for permissions

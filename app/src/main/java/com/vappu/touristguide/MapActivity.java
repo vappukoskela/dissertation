@@ -1,7 +1,6 @@
 package com.vappu.touristguide;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -84,7 +83,7 @@ public class MapActivity extends AppCompatActivity
         setContentView(R.layout.activity_map);
 
         // bind to service
-        bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+        //bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
@@ -167,6 +166,28 @@ public class MapActivity extends AppCompatActivity
         Log.d(TAG, "onResume");
         super.onResume();
     }
+/*
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
+
+        if ( serviceConnection != null ){
+            unbindService(serviceConnection);
+            serviceConnection = null;
+        }
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        Log.d(TAG, "onPause");
+        if ( serviceConnection != null ){
+            unbindService(serviceConnection);
+            serviceConnection = null;
+        }
+    }
+    */
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -286,7 +307,12 @@ public class MapActivity extends AppCompatActivity
 
         // once clicking point of interest, open the info activity for that POI
         Intent intent = new Intent(this, InfoActivity.class);
-        intent.putExtra("poiID", pointOfInterest.placeId);
+
+        // TODO clean up
+    //    intent.putExtra("poiID", pointOfInterest.placeId);
+
+        // pass the coordinates of the place
+        intent.putExtra("poiLatLng", pointOfInterest.latLng);
         startActivity(intent);
     }
 

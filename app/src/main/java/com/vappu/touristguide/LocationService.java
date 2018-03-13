@@ -31,6 +31,7 @@ import com.google.android.gms.tasks.Task;
 import java.util.Objects;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
+import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
 // LocationService, start a new service that tracks the user's location and lets them know of interesting places
@@ -42,7 +43,7 @@ public class LocationService extends Service {
     private static final String TAG = LocationService.class.getSimpleName();
 
     // the threshold which determines whether to send notification or not
-    private static final double PLACELIKELIHOODTHRESHOLD = 0.25;
+    private static final double PLACELIKELIHOODTHRESHOLD = 0.0;
 
     // default location which will be used if location unavailable
     private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
@@ -71,6 +72,24 @@ public class LocationService extends Service {
 
         //TODO delete
         setLocationPermissionGranted(true);
+
+        // Create Notification Channels
+        int importance = 0;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            // Create notification channel for place detection alerts
+            importance = NotificationManager.IMPORTANCE_DEFAULT;
+            CharSequence name = "guideChannel";
+            String description = "channel for tourist guide proximity notifications";
+            String channelID = "channelID";
+            createNotificationChannel(importance, name, description, channelID);
+
+            // Create Notification Channel for notification keeping service alive
+            importance = NotificationManager.IMPORTANCE_MIN;
+            name = "serviceChannel";
+            description = "channel for notification keeping service alive";
+            channelID = "serviceID";
+            createNotificationChannel(importance, name, description, channelID);
+        }
 
         mLastKnownLocation = new Location(String.valueOf(mDefaultLocation));
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
@@ -132,28 +151,28 @@ public class LocationService extends Service {
         Log.d(TAG, "checkLikelyPlaces " + location);
         if(mLocationPermissionGranted) {
             // TODO add filters
-            Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
-            placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
-                @Override
-                public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                    PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+                Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
+                placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                        PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
 
-                    // get the top result of the likely places
-                    // i.e. the most likely place we are near of
-                    PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
-                    Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
-                            placeLikelihood.getLikelihood()));
+                        // get the top result of the likely places
+                        // i.e. the most likely place we are near of
+                        PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
+                        Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
+                                placeLikelihood.getLikelihood()));
 
-                    String id = placeLikelihood.getPlace().getId();
+                        String id = placeLikelihood.getPlace().getId();
 
-                    // is not the same place as previously notified
-                    // proximity over threshold
-                    if (!(Objects.equals(id, mPreviousPlaceId)) && placeLikelihood.getLikelihood() > 0.0 ){
-                        createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
-                    }
+                        // is not the same place as previously notified
+                        // proximity over threshold
+                        if (!(Objects.equals(id, mPreviousPlaceId)) && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
+                            createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
+                        }
 
-                    // update previous place
-                    mPreviousPlaceId = id;
+                        // update previous place
+                        mPreviousPlaceId = id;
 
                     /* don't necessarily need all of them!
                     // keep this until sure won't need all
@@ -165,11 +184,11 @@ public class LocationService extends Service {
                     }
                     */
 
-                    // release PlaceLikelihoodBufferResponse
-                    likelyPlaces.release();
-                    likelyPlaces.close();
-                }
-            });
+                        // release PlaceLikelihoodBufferResponse
+                        likelyPlaces.release();
+                    }
+                });
+
         }
     }
 
@@ -190,17 +209,13 @@ public class LocationService extends Service {
         }
     }
 
-    public void createNotificationChannel(){
+    public void createNotificationChannel(int importance, CharSequence name, String description, String channelID){
         // check the sdk version so that only doing this if sdk 8.0 and higher
         // since channels are a newer concept
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // tODO these strings should be in /res/
-            CharSequence name = "guideChannel";
-            String description = "channel for tourist guide proximity notifications";
-            String CHANNEL_ID = "channelID";
 
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
+            //int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel mChannel = new NotificationChannel(channelID, name, importance);
             mChannel.setDescription(description);
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
@@ -212,9 +227,32 @@ public class LocationService extends Service {
 
     }
 
+    public void createNotification(String channelID, int priority){
+
+        Log.d(TAG, "service createNotification");
+        Intent notificationIntent = new Intent(this, InfoActivity.class);
+        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification notification = new NotificationCompat.Builder(this, "channelID")
+                .setTicker(("message"))
+                .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                .setContentTitle("Tourist guide")
+                .setContentText("running in the background")
+                .setContentIntent(pi)
+                .setPriority(PRIORITY_MIN)
+                .setAutoCancel(false)
+                .build();
+
+
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.notify(0, notification);
+        }
+    }
+
     public void createInfoNotification(String placeName){
 
-        createNotificationChannel();
+        // TODO pass on relevant info
 
         Log.d(TAG, "service createNotification");
         Intent notificationIntent = new Intent(this, InfoActivity.class);
