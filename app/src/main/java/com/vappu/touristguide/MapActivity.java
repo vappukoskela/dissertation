@@ -308,8 +308,7 @@ public class MapActivity extends AppCompatActivity
         // once clicking point of interest, open the info activity for that POI
         Intent intent = new Intent(this, InfoActivity.class);
 
-        // TODO clean up
-    //    intent.putExtra("poiID", pointOfInterest.placeId);
+        intent.putExtra("poiName", pointOfInterest.name);
 
         // pass the coordinates of the place
         intent.putExtra("poiLatLng", pointOfInterest.latLng);
