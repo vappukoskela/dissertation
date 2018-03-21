@@ -20,7 +20,9 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceDetectionClient;
+import com.google.android.gms.location.places.PlaceFilter;
 import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
@@ -28,6 +30,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
@@ -58,6 +62,8 @@ public class LocationService extends Service {
 
     private NotificationManager notificationManager;
     private String mPreviousPlaceId = "";
+    private PlaceFilter mFilter;
+    private ArrayList<Object> mTypesList;
 
 
     @Override
@@ -69,6 +75,8 @@ public class LocationService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
+
+        createFilters();
 
         //TODO delete
         setLocationPermissionGranted(true);
@@ -107,16 +115,6 @@ public class LocationService extends Service {
                         Log.d(TAG, "Location not null");
                         checkLikelyPlaces(location);
                     }
-
-                    /*
-                    THIS SHOULD BE USED IN MAPACTIVITY BUT CALL LOCATION FROM HERE
-
-                    // move camera to center the user and keep current zoom level
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                            new LatLng(mLastKnownLocation.getLatitude(),
-                                    mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
-
-                    */
                 }
             }
         };
@@ -127,6 +125,36 @@ public class LocationService extends Service {
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         startLocationUpdates();
+    }
+
+    private void createFilters() {
+
+        mTypesList = new ArrayList<>();
+
+        // filter grouping 1
+        //mTypesList.add(Place.TYPE_POINT_OF_INTEREST);
+
+        // activities and places
+        mTypesList.add(Place.TYPE_AMUSEMENT_PARK);
+        mTypesList.add(Place.TYPE_ART_GALLERY);
+        mTypesList.add(Place.TYPE_ZOO);
+        mTypesList.add(Place.TYPE_MUSEUM);
+        mTypesList.add(Place.TYPE_PARK);
+        mTypesList.add(Place.TYPE_STADIUM);
+        mTypesList.add(Place.TYPE_UNIVERSITY);
+        mTypesList.add(Place.TYPE_SPA);
+
+        // religious places
+        mTypesList.add(Place.TYPE_CEMETERY);
+        mTypesList.add(Place.TYPE_CHURCH);
+        mTypesList.add(Place.TYPE_HINDU_TEMPLE);
+        mTypesList.add(Place.TYPE_MOSQUE);
+        mTypesList.add(Place.TYPE_SYNAGOGUE);
+
+        // places of authority
+        mTypesList.add(Place.TYPE_CITY_HALL);
+        mTypesList.add(Place.TYPE_EMBASSY);
+
     }
 
     private void startLocationUpdates() {
@@ -160,21 +188,10 @@ public class LocationService extends Service {
                         // get the top result of the likely places
                         // i.e. the most likely place we are near of
                         PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
-                        Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
-                                placeLikelihood.getLikelihood()));
 
-                        String id = placeLikelihood.getPlace().getId();
 
-                        // is not the same place as previously notified
-                        // proximity over threshold
-                        if (!(Objects.equals(id, mPreviousPlaceId)) && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
-                            createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
-                        }
 
-                        // update previous place
-                        mPreviousPlaceId = id;
-
-                    /* don't necessarily need all of them!
+                           /* don't necessarily need all of them!
                     // keep this until sure won't need all
                     for (PlaceLikelihood placeLikelihood : likelyPlaces) {
                         Log.i(TAG, String.format("Place '%s' has likelihood: %g",
@@ -183,6 +200,29 @@ public class LocationService extends Service {
 
                     }
                     */
+
+
+                        Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
+                                placeLikelihood.getLikelihood()));
+
+                        String id = placeLikelihood.getPlace().getId();
+
+                        Log.d(TAG, "PlaceTypes originally "+ placeLikelihood.getPlace().getPlaceTypes());
+                        List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
+                        typeList.retainAll(mTypesList);
+                        Log.d(TAG, "PlaceTypes after retainall: " + typeList);
+
+                        // is not the same place as previously notified
+                        // proximity over threshold
+                        if (!(Objects.equals(id, mPreviousPlaceId))
+                                && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
+                                && !typeList.isEmpty()) {
+                            Log.d(TAG, "onComplete: Passed, create notification");
+                            createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
+                        }
+
+                        // update previous place
+                        mPreviousPlaceId = id;
 
                         // release PlaceLikelihoodBufferResponse
                         likelyPlaces.release();

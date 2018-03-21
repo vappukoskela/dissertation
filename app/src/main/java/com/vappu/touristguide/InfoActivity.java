@@ -58,13 +58,6 @@ public class InfoActivity extends AppCompatActivity {
             Log.d(TAG, "onCreate: " + poiLatLng.toString());
             String name = extras.getString("poiName");
 
-            /*
-            // take out all special characters for the query
-            if (name != null) {
-                name = name.replaceAll("[^a-zA-Z0-9]", "");
-            }
-            */
-
             // set parameters for the tasks
             // key: "title" for title, "extract" for the summary.
             FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "title");

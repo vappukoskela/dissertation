@@ -19,9 +19,6 @@ public class MainActivity extends AppCompatActivity {
     private String KEY_SERVICE = "service";
     private boolean mIsServiceRunning;
 
-    private LocationService mLocationService;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -39,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
         if(mIsServiceRunning){
             toggleButton.setChecked(true);
         } else { toggleButton.setChecked(false); }
-
     }
 
     @Override
@@ -67,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
             mIsServiceRunning = true;
         }
         else {
+            // TODO make this work
             // stop service if there is service running
             Log.d(TAG, "Stopping LocationService...");
             stopService(intent);
@@ -82,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
     // TODO populate
     private void populateListView(){
         ListView listView = findViewById(R.id.list_view);
+        if(mIsServiceRunning){
+
+        }
     }
 
     // TODO create a prompt to ask user for permissions
