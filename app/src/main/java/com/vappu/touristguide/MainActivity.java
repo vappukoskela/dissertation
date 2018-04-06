@@ -1,7 +1,11 @@
 package com.vappu.touristguide;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -18,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
     private boolean mIsServiceRunning;
+    private LocationService locationService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,14 +64,15 @@ public class MainActivity extends AppCompatActivity {
         if (!mIsServiceRunning){
             // toggle button has been clicked - start service
             Log.d(TAG, "Starting LocationService...");
-            startService(intent);
+           // startService(intent);
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
             mIsServiceRunning = true;
         }
         else {
-            // TODO make this work
             // stop service if there is service running
             Log.d(TAG, "Stopping LocationService...");
-            stopService(intent);
+            unbindService(serviceConnection);
+            //stopService(intent);
             mIsServiceRunning = false;
         }
     }
@@ -85,5 +91,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // TODO create a prompt to ask user for permissions
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            locationService = ((LocationService.LocalBinder) service).getService();
+            Log.d(TAG, "onServiceConnected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+            locationService = null;
+            Log.d(TAG, "onServiceDisconnected" );
+        }
+    };
+
 
 }

@@ -22,7 +22,6 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceDetectionClient;
-import com.google.android.gms.location.places.PlaceFilter;
 import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
@@ -43,6 +42,17 @@ import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 public class LocationService extends Service {
 
+    public ServiceState state;
+
+    public enum ServiceState{
+        RUNNING,
+        STOPPED
+    }
+
+    public ServiceState getState(){
+        return this.state;
+    }
+
     // define TAG for logs
     private static final String TAG = LocationService.class.getSimpleName();
 
@@ -56,13 +66,11 @@ public class LocationService extends Service {
 
     private PlaceDetectionClient mPlaceDetectionClient;
     private LocationCallback mLocationCallBack;
-    private Location mLastKnownLocation;
     private LocationRequest mLocationRequest;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private NotificationManager notificationManager;
     private String mPreviousPlaceId = "";
-    private PlaceFilter mFilter;
     private ArrayList<Object> mTypesList;
 
 
@@ -99,7 +107,6 @@ public class LocationService extends Service {
             createNotificationChannel(importance, name, description, channelID);
         }
 
-        mLastKnownLocation = new Location(String.valueOf(mDefaultLocation));
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -108,8 +115,6 @@ public class LocationService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     Log.d(TAG, "location " + location.toString());
-
-                    mLastKnownLocation = location;
 
                     if(location.toString() != null){
                         Log.d(TAG, "Location not null");
@@ -169,16 +174,12 @@ public class LocationService extends Service {
         catch ( SecurityException e ){
             Log.e("Exception: %s", e.getMessage());
         }
-
     }
 
-
-    // adapted from https://developers.google.com/places/android-api/current-place#get-current
     @SuppressLint("MissingPermission")
     private void checkLikelyPlaces(Location location) {
         Log.d(TAG, "checkLikelyPlaces " + location);
         if(mLocationPermissionGranted) {
-            // TODO add filters
                 Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
                 placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
                     @Override
@@ -187,43 +188,35 @@ public class LocationService extends Service {
 
                         // get the top result of the likely places
                         // i.e. the most likely place we are near of
-                        PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
+                        //PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
 
+                        // keep this until sure won't need all
+                        for (PlaceLikelihood placeLikelihood : likelyPlaces) {
+                            Log.i(TAG, String.format("Place '%s' has likelihood: %g",
+                                    placeLikelihood.getPlace().getName(),
+                                    placeLikelihood.getLikelihood()));
+                            Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
+                                    placeLikelihood.getLikelihood()));
 
+                            String id = placeLikelihood.getPlace().getId();
 
-                           /* don't necessarily need all of them!
-                    // keep this until sure won't need all
-                    for (PlaceLikelihood placeLikelihood : likelyPlaces) {
-                        Log.i(TAG, String.format("Place '%s' has likelihood: %g",
-                                placeLikelihood.getPlace().getName(),
-                                placeLikelihood.getLikelihood()));
+                            Log.d(TAG, "PlaceTypes originally "+ placeLikelihood.getPlace().getPlaceTypes());
+                            List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
+                            typeList.retainAll(mTypesList);
+                            Log.d(TAG, "PlaceTypes after retainall: " + typeList);
+                            
+                            // is not the same place as previously notified
+                            // proximity over threshold
+                            if (!(Objects.equals(id, mPreviousPlaceId))
+                                    && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
+                                    && !typeList.isEmpty()) {
+                                Log.d(TAG, "onComplete: Passed, create notification");
+                                createInfoNotification(placeLikelihood.getPlace());
+                                mPreviousPlaceId = id;
+                                break;
+                            }
 
                     }
-                    */
-
-
-                        Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
-                                placeLikelihood.getLikelihood()));
-
-                        String id = placeLikelihood.getPlace().getId();
-
-                        Log.d(TAG, "PlaceTypes originally "+ placeLikelihood.getPlace().getPlaceTypes());
-                        List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
-                        typeList.retainAll(mTypesList);
-                        Log.d(TAG, "PlaceTypes after retainall: " + typeList);
-
-                        // is not the same place as previously notified
-                        // proximity over threshold
-                        if (!(Objects.equals(id, mPreviousPlaceId))
-                                && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
-                                && !typeList.isEmpty()) {
-                            Log.d(TAG, "onComplete: Passed, create notification");
-                            createInfoNotification(String.valueOf(placeLikelihood.getPlace().getName()));
-                        }
-
-                        // update previous place
-                        mPreviousPlaceId = id;
-
                         // release PlaceLikelihoodBufferResponse
                         likelyPlaces.release();
                     }
@@ -242,12 +235,6 @@ public class LocationService extends Service {
     }
 
 
-    public class LocalBinder extends Binder {
-        LocationService getService() {
-            // Return this instance of LocalService so clients can call public methods
-            return LocationService.this;
-        }
-    }
 
     public void createNotificationChannel(int importance, CharSequence name, String description, String channelID){
         // check the sdk version so that only doing this if sdk 8.0 and higher
@@ -290,12 +277,17 @@ public class LocationService extends Service {
         }
     }
 
-    public void createInfoNotification(String placeName){
+    public void createInfoNotification(Place place){
 
-        // TODO pass on relevant info
+        String placeName = (String) place.getName();
+
+        Intent intent = new Intent(this, InfoActivity.class);
+        intent.putExtra("placeName", place.getName());
+        intent.putExtra("placeLatLng", place.getLatLng());
+
 
         Log.d(TAG, "service createNotification");
-        Intent notificationIntent = new Intent(this, InfoActivity.class);
+        Intent notificationIntent = new Intent(intent);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new NotificationCompat.Builder(this, "channelID")
@@ -308,14 +300,29 @@ public class LocationService extends Service {
                 .setAutoCancel(false)
                 .build();
 
-
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (notificationManager != null) {
             notificationManager.notify(0, notification);
         }
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
 
+        if (notificationManager != null){
+            notificationManager.cancelAll();
+        }
+    }
+
+
+    public class LocalBinder extends Binder {
+        LocationService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return LocationService.this;
+        }
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -333,11 +340,7 @@ public class LocationService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "service onUnbind");
-
-
-
-        // TODO figure out how to stop it
-
+        stopSelf();
         return super.onUnbind(intent);
     }
 }

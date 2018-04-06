@@ -8,7 +8,6 @@ import android.util.Log;
 import android.widget.TextView;
 
 import com.google.android.gms.location.places.GeoDataClient;
-import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.Objects;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -32,13 +30,11 @@ public class InfoActivity extends AppCompatActivity {
     // String poiID = "";
     LatLng poiLatLng;
     GeoDataClient mGeoDataClient;
-    Place place;
 
     // Tag for debug purposes
     private static final String TAG = InfoActivity.class.getSimpleName();
-    private String summary;
-    //    private TextView body;
-    private TextView title;
+
+    private String title;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,14 +50,13 @@ public class InfoActivity extends AppCompatActivity {
         // check if null
         if (extras != null) {
             // get the latitude and longitude of the place as a LatLng Object
-            poiLatLng = extras.getParcelable("poiLatLng");
-            Log.d(TAG, "onCreate: " + poiLatLng.toString());
-            String name = extras.getString("poiName");
+            poiLatLng = extras.getParcelable("placeLatLng");
+            String name = extras.getString("placeName");
 
             // set parameters for the tasks
             // key: "title" for title, "extract" for the summary.
             FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "title");
-            FetchTaskParams paramsSummary = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "extract");
+            //FetchTaskParams paramsSummary = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "extract");
 
             // start background tasks for fetching the title and the summary
             new FetchInfoTask().execute(paramsKey);
@@ -95,32 +90,40 @@ public class InfoActivity extends AppCompatActivity {
 
         String key;
         String name;
+        String searchQueryType;
 
         // JSON passed as a String, parse it and return the content of the desired identifier
         private String parseJSON(String jsonString) {
             Log.d(TAG, "parseJSON");
-            String result = null;
+            String result = "";
 
             JSONObject jsonObject;
             try {
+                jsonObject = new JSONObject(jsonString);
+                JSONArray jsonArray = null;
                 switch (key) {
                     case "title":
-                        jsonObject = new JSONObject(jsonString);
                         JSONObject queryObject = jsonObject.getJSONObject("query");
-                        JSONArray jsonArray = queryObject.getJSONArray("geosearch");
-                        //JSONArray jsonArray = queryObject.getJSONArray("search");
-                        jsonObject = jsonArray.getJSONObject(0);
+
+                        if (searchQueryType.equals("geo")) {
+                            jsonArray = queryObject.getJSONArray("geosearch");
+                        }
+                        else if (searchQueryType.equals("search")) {
+                            jsonArray = queryObject.getJSONArray("search");
+                        }
+                        if (jsonArray != null) {
+                            jsonObject = jsonArray.getJSONObject(0);
+                        }
                         result = jsonObject.getString(key);
+
                         break;
                     case "extract":
-                        jsonObject = new JSONObject(jsonString);
                         result = jsonObject.get(key).toString();
                         break;
                     default:
                         Log.d(TAG, "parseJSON: Issue with key " + key);
                         break;
                 }
-
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -131,18 +134,14 @@ public class InfoActivity extends AppCompatActivity {
         protected void onPostExecute(String resultString) {
             super.onPostExecute(resultString);
             // after executed, set the text on body or title to be the parsed string
-            switch (key) {
-                case "title":
-                    TextView title = (TextView) findViewById(R.id.infoText);
-                    title.setText(resultString);
-                    break;
-                case "extract":
-                    TextView body = (TextView) findViewById(R.id.contentText);
-                    body.setText(resultString);
-                    break;
-                default:
-                    break;
-            }
+
+            TextView title = findViewById(R.id.infoText);
+            title.setText(name);
+
+            TextView body = findViewById(R.id.contentText);
+            key = "extract";
+            body.setText(parseJSON(resultString));
+
         }
 
         @Override
@@ -178,16 +177,18 @@ public class InfoActivity extends AppCompatActivity {
                 }
                 bufferedReader.close();
                 Log.d(TAG, "queryApi: " + stringBuilder.toString());
-
-                // return the title by using the JSON as a string and passing "extract" key
-                result = parseJSON(stringBuilder.toString());
+                result = stringBuilder.toString();
 
                 // close connection!
                 conn.disconnect();
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            Log.d(TAG, "queryApi: result is " + result);
             return result;
+
         }
 
 
@@ -216,36 +217,29 @@ public class InfoActivity extends AppCompatActivity {
             double lat = fetchTaskParams[0].latitude;
             double lon = fetchTaskParams[0].longitude;
 
-            // find the title used by wiki
-            String titleQuery = "https://en.wikipedia.org/w/api.php?action=query&list=geosearch" +
-                    "&gscoord=" + lat + "|" + lon + "&gsradius=500&gslimit=5&format=json";
+            // Different queries to try
+            searchQueryType = "geo";
+            String geoQueryResult = parseJSON(queryApi("https://en.wikipedia.org/w/api.php?action=query&list=geosearch" +
+                    "&gscoord=" + lat + "|" + lon + "&gsradius=500&gslimit=5&format=json"));
+            // return the title by using the JSON as a string and passing "extract" key
 
-            // srnearmatch query
-            //String titleQuery = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + name + "&format=json";
+            searchQueryType = "search";
+            String searchQueryResult = parseJSON(queryApi("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + name + "&format=json"));
 
-            // Query title
-            String title = queryApi(titleQuery);
-            Log.d(TAG, "doInBackground: " + title);
-
-            if ( isFuzzyCorrect(title, name)){
-                // success!
-                if (Objects.equals(key, "title")) {
-                    // if looking for just title then return here
-                    return title;
-                }
-                else {
-                    // if not, carry on and get the summary
-                    // use the obtained page title from wiki to find the summary
-                    String summaryQuery = "https://en.wikipedia.org/api/rest_v1/page/summary/" + title;
-                    return queryApi(summaryQuery);
-                }
+            if(isFuzzyCorrect(geoQueryResult, name)){
+                name = geoQueryResult;
+            }
+            else if(isFuzzyCorrect(searchQueryResult, name)){
+                name = searchQueryResult;
             }
             else {
-                // fail, try another search
-                titleQuery = "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + "Nottingham " + name + "&format=json";
-                return queryApi(titleQuery);
+                // google maps it
+                name = "nay";
             }
-
+            Log.d(TAG, "doInBackground: returning " + queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name));
+            return queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name);
         }
+
+
     }
 }

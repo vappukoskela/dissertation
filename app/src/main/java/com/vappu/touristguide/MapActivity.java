@@ -44,7 +44,6 @@ public class MapActivity extends AppCompatActivity
     private static final String TAG = MapActivity.class.getSimpleName();
 
     private GoogleMap mMap;
-    private CameraPosition mCameraPosition;
 
     // The entry points to the Places API.
     private GeoDataClient mGeoDataClient;
@@ -88,20 +87,13 @@ public class MapActivity extends AppCompatActivity
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
             mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
-            mCameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION);
+            CameraPosition mCameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION);
         }
 
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
         // Construct a FusedLocationProviderClient.
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-
-
-        // todo wont need these
-        // Construct a PlaceDetectionClient.
-  //      mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
-
-
 
         mLocationCallBack = new LocationCallback() {
             @Override
@@ -131,42 +123,13 @@ public class MapActivity extends AppCompatActivity
 
     }
 
-    // todo wont need this
-    /*
-    // adapted from https://developers.google.com/places/android-api/current-place#get-current
-    @SuppressLint("MissingPermission")
-    private void checkLikelyPlaces(Location location) {
-        Log.d(TAG, "checkLikelyPlaces " + location);
-        if (mLocationPermissionGranted) {
-            // TODO add filters
-            Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
-            placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
-                @Override
-                public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                    PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
-                    for (PlaceLikelihood placeLikelihood : likelyPlaces) {
-                        Log.i(TAG, String.format("Place '%s' has likelihood: %g",
-                                placeLikelihood.getPlace().getName(),
-                                placeLikelihood.getLikelihood()));
-                        if (placeLikelihood.getLikelihood() > 0.7) {
-                            Toast.makeText(MapActivity.this, "You are at " + placeLikelihood.getPlace().getName(), Toast.LENGTH_LONG).show();
-                        }
-                    }
-                    // release PlaceLikelihoodBufferResponse
-                    likelyPlaces.release();
-                    likelyPlaces.close();
-                }
-            });
-        }
-    }
-    */
-
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
     }
-/*
+
+    /*
     @Override
     protected void onDestroy(){
         super.onDestroy();
@@ -187,8 +150,8 @@ public class MapActivity extends AppCompatActivity
             serviceConnection = null;
         }
     }
-    */
 
+*/
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         Log.d(TAG, "onSaveInstanceState");
@@ -278,9 +241,6 @@ public class MapActivity extends AppCompatActivity
         updateLocationUI();
     }
 
-    /**
-     * Updates the map's UI settings based on whether the user has granted location permission.
-     */
     private void updateLocationUI() {
         Log.d(TAG, "updateLocationUI");
         if (mMap == null) {
@@ -308,10 +268,10 @@ public class MapActivity extends AppCompatActivity
         // once clicking point of interest, open the info activity for that POI
         Intent intent = new Intent(this, InfoActivity.class);
 
-        intent.putExtra("poiName", pointOfInterest.name);
+        intent.putExtra("placeName", pointOfInterest.name);
 
         // pass the coordinates of the place
-        intent.putExtra("poiLatLng", pointOfInterest.latLng);
+        intent.putExtra("placeLatLng", pointOfInterest.latLng);
         startActivity(intent);
     }
 
