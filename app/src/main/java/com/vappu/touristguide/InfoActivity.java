@@ -5,6 +5,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.places.GeoDataClient;
@@ -30,6 +32,7 @@ public class InfoActivity extends AppCompatActivity {
     // String poiID = "";
     LatLng poiLatLng;
     GeoDataClient mGeoDataClient;
+    ProgressBar progressBar;
 
     // Tag for debug purposes
     private static final String TAG = InfoActivity.class.getSimpleName();
@@ -40,6 +43,10 @@ public class InfoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
+
+        progressBar = findViewById(R.id.progressBar3);
+        progressBar.setIndeterminate(true);
+        progressBar.setVisibility(View.INVISIBLE);
 
         // initialise mGeoDataClient
         mGeoDataClient = Places.getGeoDataClient(this, null);
@@ -52,15 +59,13 @@ public class InfoActivity extends AppCompatActivity {
             // get the latitude and longitude of the place as a LatLng Object
             poiLatLng = extras.getParcelable("placeLatLng");
             String name = extras.getString("placeName");
+            String placeID = extras.getString("placeID");
 
-            // set parameters for the tasks
-            // key: "title" for title, "extract" for the summary.
-            FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "title");
-            //FetchTaskParams paramsSummary = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, "extract");
+            TextView title = findViewById(R.id.infoText);
+            title.setText(name);
 
-            // start background tasks for fetching the title and the summary
+            FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
             new FetchInfoTask().execute(paramsKey);
-            //new FetchInfoTask().execute(paramsSummary);
         } else {
             Log.d(TAG, "onCreate: Nothing passed in extras!");
         }
@@ -71,15 +76,17 @@ public class InfoActivity extends AppCompatActivity {
         double latitude;
         double longitude;
         String placeName;
-        String key;
+        String placeID;
+        //String key;
 
 
-        FetchTaskParams(double lat, double lon, String name, String key) {
+        FetchTaskParams(double lat, double lon, String name, String id) {
             Log.d(TAG, "FetchTaskParams");
             this.latitude = lat;
             this.longitude = lon;
             this.placeName = name;
-            this.key = key;
+            this.placeID = id;
+            //this.key = key;
         }
     }
 
@@ -91,6 +98,7 @@ public class InfoActivity extends AppCompatActivity {
         String key;
         String name;
         String searchQueryType;
+        private String placeID;
 
         // JSON passed as a String, parse it and return the content of the desired identifier
         private String parseJSON(String jsonString) {
@@ -101,28 +109,21 @@ public class InfoActivity extends AppCompatActivity {
             try {
                 jsonObject = new JSONObject(jsonString);
                 JSONArray jsonArray = null;
-                switch (key) {
-                    case "title":
-                        JSONObject queryObject = jsonObject.getJSONObject("query");
+                if(key.equals("extract")) {
+                    result = jsonObject.get("extract").toString();
+                }
+                else {
+                    JSONObject queryObject = jsonObject.getJSONObject("query");
 
-                        if (searchQueryType.equals("geo")) {
-                            jsonArray = queryObject.getJSONArray("geosearch");
-                        }
-                        else if (searchQueryType.equals("search")) {
-                            jsonArray = queryObject.getJSONArray("search");
-                        }
-                        if (jsonArray != null) {
-                            jsonObject = jsonArray.getJSONObject(0);
-                        }
-                        result = jsonObject.getString(key);
-
-                        break;
-                    case "extract":
-                        result = jsonObject.get(key).toString();
-                        break;
-                    default:
-                        Log.d(TAG, "parseJSON: Issue with key " + key);
-                        break;
+                    if (searchQueryType.equals("geo")) {
+                        jsonArray = queryObject.getJSONArray("geosearch");
+                    } else if (searchQueryType.equals("search")) {
+                        jsonArray = queryObject.getJSONArray("search");
+                    }
+                    if (jsonArray != null) {
+                        jsonObject = jsonArray.getJSONObject(0);
+                    }
+                    result = jsonObject.getString("title");
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -135,9 +136,7 @@ public class InfoActivity extends AppCompatActivity {
             super.onPostExecute(resultString);
             // after executed, set the text on body or title to be the parsed string
 
-            TextView title = findViewById(R.id.infoText);
-            title.setText(name);
-
+            progressBar.setVisibility(View.INVISIBLE);
             TextView body = findViewById(R.id.contentText);
             key = "extract";
             body.setText(parseJSON(resultString));
@@ -148,6 +147,12 @@ public class InfoActivity extends AppCompatActivity {
         protected void onProgressUpdate(Integer... values) {
             Log.d(TAG, "onProgressUpdate");
             super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
         }
 
         private String queryApi(String query) {
@@ -210,8 +215,9 @@ public class InfoActivity extends AppCompatActivity {
             int i = 0;
             publishProgress(i);
 
-            key = fetchTaskParams[0].key;
+            key = "title";
             name = fetchTaskParams[0].placeName;
+            placeID = fetchTaskParams[0].placeID;
 
             // fetch coordinates
             double lat = fetchTaskParams[0].latitude;
@@ -232,14 +238,7 @@ public class InfoActivity extends AppCompatActivity {
             else if(isFuzzyCorrect(searchQueryResult, name)){
                 name = searchQueryResult;
             }
-            else {
-                // google maps it
-                name = "nay";
-            }
-            Log.d(TAG, "doInBackground: returning " + queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name));
             return queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name);
         }
-
-
     }
 }

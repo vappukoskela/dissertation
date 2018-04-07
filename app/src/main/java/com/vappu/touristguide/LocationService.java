@@ -204,7 +204,7 @@ public class LocationService extends Service {
                             List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
                             typeList.retainAll(mTypesList);
                             Log.d(TAG, "PlaceTypes after retainall: " + typeList);
-                            
+
                             // is not the same place as previously notified
                             // proximity over threshold
                             if (!(Objects.equals(id, mPreviousPlaceId))
@@ -282,6 +282,7 @@ public class LocationService extends Service {
         String placeName = (String) place.getName();
 
         Intent intent = new Intent(this, InfoActivity.class);
+        intent.putExtra("placeID", place.getId());
         intent.putExtra("placeName", place.getName());
         intent.putExtra("placeLatLng", place.getLatLng());
 
