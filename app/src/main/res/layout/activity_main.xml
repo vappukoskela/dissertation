@@ -10,6 +10,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@color/colorBG"
         android:orientation="vertical"
         >
 
@@ -17,7 +18,7 @@
             android:id="@+id/toggleButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/colorAccent"
+            android:background="@color/colorBG1"
             android:textColor="@color/colorTextLight"
             android:onClick="startService"
             android:paddingBottom="20dp"
@@ -25,12 +26,23 @@
             android:textOn="Stop locating"
             android:textOff="Start locating" />
 
+        <Button
+            android:id="@+id/mapButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorBG1"
+            android:textColor="@color/colorTextLight"
+            android:onClick="openMap"
+            android:paddingBottom="20dp"
+            android:paddingTop="20dp"
+            android:text="Map" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/colorAccent"
             android:orientation="vertical"
-            android:paddingStart="50dp">
+            android:paddingStart="50dp"
+            android:paddingEnd="50dp">
 
             <TextView
                 android:id="@+id/textView"
@@ -52,27 +64,38 @@
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight" />
 
+            <Switch
+                android:id="@+id/switch1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="20dp"
+                android:paddingTop="20dp"
+                android:text="Switch"
+                android:textAllCaps="true"
+                android:textColor="@color/colorTextLight" />
+
+            <Switch
+                android:id="@+id/switch2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="20dp"
+                android:paddingTop="20dp"
+                android:textAllCaps="true"
+                android:textColor="@color/colorTextLight"
+                android:text="Switch" />
+
+            <Switch
+                android:id="@+id/switch3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="20dp"
+                android:paddingTop="20dp"
+                android:textAllCaps="true"
+                android:textColor="@color/colorTextLight"
+                android:text="Switch" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/mapButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/colorAccent"
-            android:textColor="@color/colorTextLight"
-            android:onClick="openMap"
-            android:paddingBottom="20dp"
-            android:paddingTop="20dp"
-            android:text="Map" />
 
-        <ListView
-            android:id="@+id/list_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/colorAccent"
-            android:textColor="@color/colorTextLight"
-            android:paddingBottom="20dp"
-            android:paddingTop="20dp" />
     </LinearLayout>
 
 </android.widget.RelativeLayout>

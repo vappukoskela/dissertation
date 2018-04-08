@@ -100,12 +100,15 @@ public class MapActivity extends AppCompatActivity
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     //Log.d(TAG, "location " + location.toString());
+
+                    if(!location.equals(mLastKnownLocation)) {
+                        // move camera to center the user and keep current zoom level
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                new LatLng(mLastKnownLocation.getLatitude(),
+                                        mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
+                    }
                     mLastKnownLocation = location;
 
-                    // move camera to center the user and keep current zoom level
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                            new LatLng(mLastKnownLocation.getLatitude(),
-                                    mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
                 }
             }
         };
@@ -243,6 +246,9 @@ public class MapActivity extends AppCompatActivity
 
     private void updateLocationUI() {
         Log.d(TAG, "updateLocationUI");
+
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setZoomGesturesEnabled(true);
         if (mMap == null) {
             return;
         }
