@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
-import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
 // LocationService, start a new service that tracks the user's location and lets them know of interesting places
@@ -186,16 +185,10 @@ public class LocationService extends Service {
                     public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
                         PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
 
-                        // get the top result of the likely places
-                        // i.e. the most likely place we are near of
-                        //PlaceLikelihood placeLikelihood = likelyPlaces.get(0);
-
                         // keep this until sure won't need all
                         for (PlaceLikelihood placeLikelihood : likelyPlaces) {
                             Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                     placeLikelihood.getPlace().getName(),
-                                    placeLikelihood.getLikelihood()));
-                            Log.i(TAG, String.format("place '%s' has likelihood %g", placeLikelihood.getPlace().getName(),
                                     placeLikelihood.getLikelihood()));
 
                             String id = placeLikelihood.getPlace().getId();
@@ -235,7 +228,6 @@ public class LocationService extends Service {
     }
 
 
-
     public void createNotificationChannel(int importance, CharSequence name, String description, String channelID){
         // check the sdk version so that only doing this if sdk 8.0 and higher
         // since channels are a newer concept
@@ -253,7 +245,7 @@ public class LocationService extends Service {
         }
 
     }
-
+/*
     public void createNotification(String channelID, int priority){
 
         Log.d(TAG, "service createNotification");
@@ -276,7 +268,7 @@ public class LocationService extends Service {
             notificationManager.notify(0, notification);
         }
     }
-
+*/
     public void createInfoNotification(Place place){
 
         String placeName = (String) place.getName();

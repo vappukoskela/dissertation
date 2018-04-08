@@ -1,6 +1,7 @@
 package com.vappu.touristguide;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -82,7 +83,7 @@ public class MapActivity extends AppCompatActivity
         setContentView(R.layout.activity_map);
 
         // bind to service
-        //bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
@@ -90,25 +91,20 @@ public class MapActivity extends AppCompatActivity
             CameraPosition mCameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION);
         }
 
-        // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
-        // Construct a FusedLocationProviderClient.
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         mLocationCallBack = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
-                    //Log.d(TAG, "location " + location.toString());
-
-                    if(!location.equals(mLastKnownLocation)) {
+                    if(!location.equals(mLastKnownLocation) && mLastKnownLocation != null) {
                         // move camera to center the user and keep current zoom level
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 new LatLng(mLastKnownLocation.getLatitude(),
                                         mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
                     }
                     mLastKnownLocation = location;
-
                 }
             }
         };
@@ -131,6 +127,8 @@ public class MapActivity extends AppCompatActivity
         Log.d(TAG, "onResume");
         super.onResume();
     }
+
+
 
     /*
     @Override

@@ -71,13 +71,14 @@ public class MainActivity extends AppCompatActivity {
             // stop service if there is service running
             Log.d(TAG, "Stopping LocationService...");
             unbindService(serviceConnection);
-            //stopService(intent);
+            stopService(intent);
             mIsServiceRunning = false;
         }
     }
 
     @Override
     public void onDestroy(){
+     //   unbindService(serviceConnection);
         super.onDestroy();
     }
 
