@@ -183,37 +183,39 @@ public class LocationService extends Service {
                 placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
                     @Override
                     public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                        PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+                        if(task.isSuccessful()) {
+                            PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
 
-                        // keep this until sure won't need all
-                        for (PlaceLikelihood placeLikelihood : likelyPlaces) {
-                            Log.i(TAG, String.format("Place '%s' has likelihood: %g",
-                                    placeLikelihood.getPlace().getName(),
-                                    placeLikelihood.getLikelihood()));
+                            // keep this until sure won't need all
+                            for (PlaceLikelihood placeLikelihood : likelyPlaces) {
+                                Log.i(TAG, String.format("Place '%s' has likelihood: %g",
+                                        placeLikelihood.getPlace().getName(),
+                                        placeLikelihood.getLikelihood()));
 
-                            String id = placeLikelihood.getPlace().getId();
+                                String id = placeLikelihood.getPlace().getId();
 
-                            Log.d(TAG, "PlaceTypes originally "+ placeLikelihood.getPlace().getPlaceTypes());
-                            List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
-                            typeList.retainAll(mTypesList);
-                            Log.d(TAG, "PlaceTypes after retainall: " + typeList);
+                                Log.d(TAG, "PlaceTypes originally " + placeLikelihood.getPlace().getPlaceTypes());
+                                List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
+                                typeList.retainAll(mTypesList);
+                                Log.d(TAG, "PlaceTypes after retainall: " + typeList);
 
-                            // is not the same place as previously notified
-                            // proximity over threshold
-                            if (!(Objects.equals(id, mPreviousPlaceId))
-                                    && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
-                                    && !typeList.isEmpty()) {
-                                Log.d(TAG, "onComplete: Passed, create notification");
-                                createInfoNotification(placeLikelihood.getPlace());
-                                mPreviousPlaceId = id;
-                                break;
+                                // is not the same place as previously notified
+                                // proximity over threshold
+                                if (!(Objects.equals(id, mPreviousPlaceId))
+                                        && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
+                                        && !typeList.isEmpty()) {
+                                    Log.d(TAG, "onComplete: Passed, create notification");
+                                    createInfoNotification(placeLikelihood.getPlace());
+                                    mPreviousPlaceId = id;
+                                    break;
+                                }
                             }
-
-                    }
-                        // release PlaceLikelihoodBufferResponse
-                        likelyPlaces.release();
+                            // release PlaceLikelihoodBufferResponse
+                            likelyPlaces.release();
+                        }
                     }
                 });
+
 
         }
     }

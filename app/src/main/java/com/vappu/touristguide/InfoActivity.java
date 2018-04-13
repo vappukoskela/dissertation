@@ -3,6 +3,7 @@ package com.vappu.touristguide;
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -10,8 +11,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -105,6 +110,8 @@ public class InfoActivity extends AppCompatActivity {
             Log.d(TAG, "parseJSON");
             String result = "";
 
+            if(key.equals("error")){ return jsonString; }
+
             JSONObject jsonObject;
             try {
                 jsonObject = new JSONObject(jsonString);
@@ -138,7 +145,6 @@ public class InfoActivity extends AppCompatActivity {
 
             progressBar.setVisibility(View.INVISIBLE);
             TextView body = findViewById(R.id.contentText);
-            key = "extract";
             body.setText(parseJSON(resultString));
 
         }
@@ -162,6 +168,7 @@ public class InfoActivity extends AppCompatActivity {
                 HttpsURLConnection conn = (HttpsURLConnection) titleEndPoint.openConnection();
                 conn.setRequestProperty("User-Agent", "tourist-guide");
                 conn.setRequestMethod("GET");
+
 
                 if (conn.getResponseCode() == 200) {
                     // everything is fine!
@@ -189,6 +196,9 @@ public class InfoActivity extends AppCompatActivity {
 
             } catch (IOException e) {
                 e.printStackTrace();
+
+                key = "error";
+                return "Unable to connect. Please check your connection";
             }
 
             Log.d(TAG, "queryApi: result is " + result);
@@ -238,7 +248,22 @@ public class InfoActivity extends AppCompatActivity {
             else if(isFuzzyCorrect(searchQueryResult, name)){
                 name = searchQueryResult;
             }
-            return queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name);
+
+            key = "extract";
+            final String summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name));
+            if(summaryText.equals("")){
+                mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
+                        if(task.isSuccessful()){
+                            PlaceBufferResponse places = task.getResult();
+                            Place infoPlace = places.get(0);
+                        }
+                    }
+                });
+            }
+
+            return summaryText;
         }
     }
 }
