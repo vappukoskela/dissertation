@@ -71,6 +71,30 @@ public class InfoActivity extends AppCompatActivity {
 
             FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
             new FetchInfoTask().execute(paramsKey);
+
+            final TextView gTextPrice = findViewById(R.id.gTextPrice);
+            final TextView gTextAddress = findViewById(R.id.gTextAddress);
+            mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
+                @Override
+                public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
+                    PlaceBufferResponse places = task.getResult();
+                    Place thisPlace = places.get(0);
+                    int pricelevel = thisPlace.getPriceLevel();
+                    String address = (String) thisPlace.getAddress();
+
+                    if (pricelevel >= 0){
+                        gTextPrice.setText(pricelevel);
+                    }
+                    if (address != null){
+                        gTextAddress.setText(address);
+                    }
+
+                    places.release();
+
+                }
+            });
+
+
         } else {
             Log.d(TAG, "onCreate: Nothing passed in extras!");
         }
@@ -82,7 +106,6 @@ public class InfoActivity extends AppCompatActivity {
         double longitude;
         String placeName;
         String placeID;
-        //String key;
 
 
         FetchTaskParams(double lat, double lon, String name, String id) {
@@ -91,7 +114,6 @@ public class InfoActivity extends AppCompatActivity {
             this.longitude = lon;
             this.placeName = name;
             this.placeID = id;
-            //this.key = key;
         }
     }
 
@@ -207,7 +229,6 @@ public class InfoActivity extends AppCompatActivity {
 
         }
 
-
         // use FuzzyWuzzy to check whether the latlong search wiki article is what we want!
         // parameters wTitle = title from wikipedia
         // gPlaceName = what google thinks the place is called
@@ -252,18 +273,6 @@ public class InfoActivity extends AppCompatActivity {
 
             key = "extract";
             final String summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name));
-            if(summaryText.equals("")){
-                mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
-                    @Override
-                    public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
-                        if(task.isSuccessful()){
-                            PlaceBufferResponse places = task.getResult();
-                            Place infoPlace = places.get(0);
-                        }
-                    }
-                });
-            }
-
             return summaryText;
         }
     }

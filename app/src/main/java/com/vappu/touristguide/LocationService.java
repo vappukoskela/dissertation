@@ -149,9 +149,12 @@ public class LocationService extends Service {
         mTypesList.add(Place.TYPE_STADIUM);
         mTypesList.add(Place.TYPE_UNIVERSITY);
         mTypesList.add(Place.TYPE_SPA);
+        mTypesList.add(Place.TYPE_LOCALITY);
+        mTypesList.add(Place.TYPE_SUBLOCALITY);
 
         // religious places
         mTypesList.add(Place.TYPE_CEMETERY);
+        mTypesList.add(Place.TYPE_PLACE_OF_WORSHIP);
         mTypesList.add(Place.TYPE_CHURCH);
         mTypesList.add(Place.TYPE_HINDU_TEMPLE);
         mTypesList.add(Place.TYPE_MOSQUE);
@@ -184,6 +187,10 @@ public class LocationService extends Service {
         catch ( SecurityException e ){
             Log.e("Exception: %s", e.getMessage());
         }
+    }
+
+    private void checkNearbyPlaces(Location location) {
+
     }
 
     @SuppressLint("MissingPermission")

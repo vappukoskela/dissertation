@@ -1,11 +1,15 @@
 package com.vappu.touristguide;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -13,6 +17,7 @@ import android.widget.ToggleButton;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     // tag for logs
     private final String TAG = MainActivity.class.getSimpleName();
 
@@ -28,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        checkingPermissions();
 
         toggleButton = findViewById(R.id.toggleButton);
 
@@ -83,7 +89,61 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // TODO create a prompt to ask user for permissions
+    private void startService() {
+        Intent intent = new Intent(this, LocationService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
+        mIsServiceRunning = true;
+    }
+
+    private void checkingPermissions() {
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // need to ask permissions! permission has not been granted
+            requestStoragePermission();
+        }
+        else {
+            startService();
+        }
+    }
+
+
+
+    private void requestStoragePermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            System.out.println("requeststoragepermissions if");
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION  );
+
+        }
+        else {
+            System.out.println("requeststoragepermission else");
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startService();
+
+                } else {
+                    System.out.println("on requestpermissionsresult else");
+                    // permission denied
+                }
+            }
+        }
+    }
+
+
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
