@@ -72,7 +72,8 @@ public class LocationService extends Service {
     private String mPreviousPlaceId = "";
     private ArrayList<Object> mTypesList;
     private ArrayList<Object> mIndoorsList;
-    private ArrayList<Object> mShopsLists;
+
+    public ArrayList<Object> mNearbyList = new ArrayList<>();
 
 
     @Override
@@ -189,7 +190,7 @@ public class LocationService extends Service {
         }
     }
 
-    private void checkNearbyPlaces(Location location) {
+    private void checkNearbyWikiPlaces(Location location) {
 
     }
 

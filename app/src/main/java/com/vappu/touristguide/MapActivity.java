@@ -13,7 +13,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -27,15 +26,13 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PointOfInterest;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
  */
 public class MapActivity extends AppCompatActivity
-        implements OnMapReadyCallback, GoogleMap.OnPoiClickListener {
+        implements OnMapReadyCallback {
 
     // The core of the Activity's Location functionality provided by Google's Android tutorial
     // https://developers.google.com/maps/documentation/android-api/current-place-tutorial
@@ -65,7 +62,6 @@ public class MapActivity extends AppCompatActivity
     private Location mLastKnownLocation;
 
     // Keys for storing activity state.
-    private static final String KEY_CAMERA_POSITION = "camera_position";
     private static final String KEY_LOCATION = "location";
 
     private LocationRequest mLocationRequest;
@@ -88,7 +84,6 @@ public class MapActivity extends AppCompatActivity
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
             mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
-            CameraPosition mCameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION);
         }
 
         mGeoDataClient = Places.getGeoDataClient(this, null);
@@ -98,12 +93,12 @@ public class MapActivity extends AppCompatActivity
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
-                    /*if(!location.equals(mLastKnownLocation) && mLastKnownLocation != null) {
+                    if(!location.equals(mLastKnownLocation) && mLastKnownLocation != null) {
                         // move camera to center the user and keep current zoom level
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 new LatLng(mLastKnownLocation.getLatitude(),
                                         mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
-                    }*/
+                    }
                     mLastKnownLocation = location;
                 }
             }
@@ -127,7 +122,6 @@ public class MapActivity extends AppCompatActivity
         Log.d(TAG, "onResume");
         super.onResume();
     }
-
 
 
     /*
@@ -158,7 +152,6 @@ public class MapActivity extends AppCompatActivity
         Log.d(TAG, "onSaveInstanceState");
 
         if (mMap != null) {
-            outState.putParcelable(KEY_CAMERA_POSITION, mMap.getCameraPosition());
             outState.putParcelable(KEY_LOCATION, mLastKnownLocation);
             super.onSaveInstanceState(outState);
         }
@@ -182,7 +175,7 @@ public class MapActivity extends AppCompatActivity
         startLocationUpdates();
 
         // listen for clicks at Points of Interests allowing to display info that user wants to see
-        mMap.setOnPoiClickListener(this);
+       // mMap.setOnPoiClickListener(this);
     }
 
 
@@ -206,7 +199,6 @@ public class MapActivity extends AppCompatActivity
     }
 
 
-    // todo can get this from elsewhere
     // get permissions
     private void getLocationPermission() {
         Log.d(TAG, "getLocationPermission");
@@ -265,6 +257,7 @@ public class MapActivity extends AppCompatActivity
         }
     }
 
+    /*
     @Override
     public void onPoiClick(PointOfInterest pointOfInterest) {
         Toast.makeText(this, "clicked " + pointOfInterest.name, Toast.LENGTH_SHORT).show();
@@ -277,6 +270,7 @@ public class MapActivity extends AppCompatActivity
         intent.putExtra("placeLatLng", pointOfInterest.latLng);
         startActivity(intent);
     }
+*/
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
 

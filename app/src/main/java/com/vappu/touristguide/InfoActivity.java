@@ -34,24 +34,16 @@ import me.xdrop.fuzzywuzzy.FuzzySearch;
 
 public class InfoActivity extends AppCompatActivity {
 
-    // String poiID = "";
     LatLng poiLatLng;
     GeoDataClient mGeoDataClient;
-    ProgressBar progressBar;
 
     // Tag for debug purposes
     private static final String TAG = InfoActivity.class.getSimpleName();
-
-    private String title;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
-
-        progressBar = findViewById(R.id.progressBar3);
-        progressBar.setIndeterminate(true);
-        progressBar.setVisibility(View.INVISIBLE);
 
         // initialise mGeoDataClient
         mGeoDataClient = Places.getGeoDataClient(this, null);
@@ -82,15 +74,14 @@ public class InfoActivity extends AppCompatActivity {
                     int pricelevel = thisPlace.getPriceLevel();
                     String address = (String) thisPlace.getAddress();
 
+                    // TODO bug here
                     if (pricelevel >= 0){
                         gTextPrice.setText(pricelevel);
                     }
                     if (address != null){
                         gTextAddress.setText(address);
                     }
-
                     places.release();
-
                 }
             });
 
@@ -122,13 +113,13 @@ public class InfoActivity extends AppCompatActivity {
     @SuppressLint("StaticFieldLeak")
     private class FetchInfoTask extends AsyncTask<FetchTaskParams, Integer, String> {
 
+        ProgressBar progressBar;
         String key;
         String name;
         String searchQueryType;
-        private String placeID;
 
         // JSON passed as a String, parse it and return the content of the desired identifier
-        private String parseJSON(String jsonString) {
+        private String parseJSON(String jsonString, String key) {
             Log.d(TAG, "parseJSON");
             String result = "";
 
@@ -164,18 +155,9 @@ public class InfoActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String resultString) {
             super.onPostExecute(resultString);
-            // after executed, set the text on body or title to be the parsed string
-
             progressBar.setVisibility(View.INVISIBLE);
             TextView body = findViewById(R.id.contentText);
             body.setText(resultString);
-
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            Log.d(TAG, "onProgressUpdate");
-            super.onProgressUpdate(values);
         }
 
         @Override
@@ -223,10 +205,8 @@ public class InfoActivity extends AppCompatActivity {
                 key = "error";
                 return "Unable to connect. Please check your connection";
             }
-
             Log.d(TAG, "queryApi: result is " + result);
             return result;
-
         }
 
         // use FuzzyWuzzy to check whether the latlong search wiki article is what we want!
@@ -243,36 +223,31 @@ public class InfoActivity extends AppCompatActivity {
         protected String doInBackground(FetchTaskParams... fetchTaskParams) {
             Log.d(TAG, "doInBackground");
 
-            // for onProgressUpdate
-            int i = 0;
-            publishProgress(i);
-
-            key = "title";
             name = fetchTaskParams[0].placeName;
-            placeID = fetchTaskParams[0].placeID;
 
             // fetch coordinates
             double lat = fetchTaskParams[0].latitude;
             double lon = fetchTaskParams[0].longitude;
 
-            // Different queries to try
+            // Different queries to try on wiki
             searchQueryType = "geo";
             String geoQueryResult = parseJSON(queryApi("https://en.wikipedia.org/w/api.php?action=query&list=geosearch" +
-                    "&gscoord=" + lat + "|" + lon + "&gsradius=500&gslimit=5&format=json"));
-            // return the title by using the JSON as a string and passing "extract" key
+                    "&gscoord=" + lat + "|" + lon + "&gsradius=500&gslimit=5&format=json"), "title");
 
             searchQueryType = "search";
-            String searchQueryResult = parseJSON(queryApi("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + name + "&format=json"));
+            String searchQueryResult = parseJSON(queryApi("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=" + name + "&format=json"), "title");
+
+            String summaryText = "";
 
             if(isFuzzyCorrect(geoQueryResult, name)){
-                name = geoQueryResult;
+                summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + geoQueryResult), "extract");
             }
             else if(isFuzzyCorrect(searchQueryResult, name)){
-                name = searchQueryResult;
+                summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + searchQueryResult), "extract");
             }
-
-            key = "extract";
-            final String summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + name));
+            else {
+                Log.d(TAG, "doInBackground: Cannot find wiki page");
+            }
             return summaryText;
         }
     }
