@@ -135,6 +135,7 @@ public class InfoActivity extends AppCompatActivity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+            Log.d(TAG, "parseJSON: result " + result);
             return result;
         }
 
@@ -145,7 +146,7 @@ public class InfoActivity extends AppCompatActivity {
 
             progressBar.setVisibility(View.INVISIBLE);
             TextView body = findViewById(R.id.contentText);
-            body.setText(parseJSON(resultString));
+            body.setText(resultString);
 
         }
 

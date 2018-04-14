@@ -71,6 +71,8 @@ public class LocationService extends Service {
     private NotificationManager notificationManager;
     private String mPreviousPlaceId = "";
     private ArrayList<Object> mTypesList;
+    private ArrayList<Object> mIndoorsList;
+    private ArrayList<Object> mShopsLists;
 
 
     @Override
@@ -158,6 +160,15 @@ public class LocationService extends Service {
         // places of authority
         mTypesList.add(Place.TYPE_CITY_HALL);
         mTypesList.add(Place.TYPE_EMBASSY);
+
+
+        // indoors places, not shops
+        mIndoorsList = new ArrayList<>();
+        mIndoorsList.add(Place.TYPE_ART_GALLERY);
+        mIndoorsList.add(Place.TYPE_MUSEUM);
+        mIndoorsList.add(Place.TYPE_SPA);
+        mIndoorsList.add(Place.TYPE_LIBRARY);
+
 
     }
 

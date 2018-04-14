@@ -98,12 +98,12 @@ public class MapActivity extends AppCompatActivity
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
-                    if(!location.equals(mLastKnownLocation) && mLastKnownLocation != null) {
+                    /*if(!location.equals(mLastKnownLocation) && mLastKnownLocation != null) {
                         // move camera to center the user and keep current zoom level
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 new LatLng(mLastKnownLocation.getLatitude(),
                                         mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
-                    }
+                    }*/
                     mLastKnownLocation = location;
                 }
             }
