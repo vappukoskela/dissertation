@@ -113,7 +113,7 @@ public class InfoActivity extends AppCompatActivity {
     @SuppressLint("StaticFieldLeak")
     private class FetchInfoTask extends AsyncTask<FetchTaskParams, Integer, String> {
 
-        ProgressBar progressBar;
+        ProgressBar progressBar = findViewById(R.id.progressBar3);
         String key;
         String name;
         String searchQueryType;
