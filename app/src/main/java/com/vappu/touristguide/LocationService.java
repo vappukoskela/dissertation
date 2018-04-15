@@ -66,6 +66,7 @@ public class LocationService extends Service {
     private ArrayList<Integer> mOutdoorsList;
     private String[] mPreviousArray = new String[2];
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         return START_STICKY;
@@ -76,7 +77,10 @@ public class LocationService extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate");
 
-        createFilters();
+        mTypesList = new ArrayList<>();
+        mIndoorsList = new ArrayList<>();
+        mOutdoorsList = new ArrayList<>();
+        updateFilters();
 
         // Create Notification Channels
         int importance;
@@ -122,46 +126,37 @@ public class LocationService extends Service {
         startLocationUpdates();
     }
 
-    public ArrayList<Integer> filterLists(boolean isIndoorChecked, boolean isOutdoorChecked) {
-        ArrayList<Integer> typesList = new ArrayList<>();
-
-        if (isIndoorChecked) {
-            typesList.addAll(mIndoorsList);
-        }
-        if (isOutdoorChecked) {
-            typesList.addAll(mOutdoorsList);
-        }
-        return typesList;
-    }
-
-    private void createFilters() {
-
-        Log.d(TAG, "createFilters: ");
-        // TypesList is a master array of indoor and outdoor place types depending on which ones
-        // we want
-        mTypesList = new ArrayList<>();
-
-        // indoors places you can generally access
-        mIndoorsList = new ArrayList<>();
-        mIndoorsList.add(Place.TYPE_ART_GALLERY);
-        mIndoorsList.add(Place.TYPE_MUSEUM);
-        mIndoorsList.add(Place.TYPE_LIBRARY);
-
-        // outdoors places and other buildings can generally not access
-        mOutdoorsList = new ArrayList<>();
-        mOutdoorsList.add(Place.TYPE_AMUSEMENT_PARK);
-        mOutdoorsList.add(Place.TYPE_ZOO);
-        mOutdoorsList.add(Place.TYPE_MUSEUM);
-        mOutdoorsList.add(Place.TYPE_PARK);
-        mOutdoorsList.add(Place.TYPE_STADIUM);
-        mOutdoorsList.add(Place.TYPE_UNIVERSITY);
-        mOutdoorsList.add(Place.TYPE_CEMETERY);
-        mOutdoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
-        mOutdoorsList.add(Place.TYPE_CITY_HALL);
-        mOutdoorsList.add(Place.TYPE_EMBASSY);
-
+    private void updateFilters(){
+        mTypesList.clear();
         mTypesList.addAll(mOutdoorsList);
         mTypesList.addAll(mIndoorsList);
+    }
+
+    // modify the list containing categories for filtering
+    public void filterIndoors(boolean isIndoorChecked) {
+        if (isIndoorChecked) {
+            mIndoorsList.add(Place.TYPE_ART_GALLERY);
+            mIndoorsList.add(Place.TYPE_MUSEUM);
+            mIndoorsList.add(Place.TYPE_LIBRARY);
+        }
+        else { mIndoorsList.clear(); }
+        updateFilters();
+    }
+
+    public void filterOutdoors(boolean isOutdoorChecked){
+        if(isOutdoorChecked){
+            mOutdoorsList.add(Place.TYPE_AMUSEMENT_PARK);
+            mOutdoorsList.add(Place.TYPE_ZOO);
+            mOutdoorsList.add(Place.TYPE_MUSEUM);
+            mOutdoorsList.add(Place.TYPE_PARK);
+            mOutdoorsList.add(Place.TYPE_STADIUM);
+            mOutdoorsList.add(Place.TYPE_UNIVERSITY);
+            mOutdoorsList.add(Place.TYPE_CEMETERY);
+            mOutdoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
+            mOutdoorsList.add(Place.TYPE_CITY_HALL);
+            mOutdoorsList.add(Place.TYPE_EMBASSY);
+        } else { mOutdoorsList.clear(); }
+        updateFilters();
     }
 
     private void startLocationUpdates() {

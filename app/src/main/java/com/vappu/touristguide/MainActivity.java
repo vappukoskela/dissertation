@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
     private boolean mIsServiceRunning;
-    private LocationService locationService = new LocationService();
+    private LocationService locationService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,25 +40,18 @@ public class MainActivity extends AppCompatActivity {
         Switch inSwitch = findViewById(R.id.switchIn);
         Switch outSwitch = findViewById(R.id.switchOut);
 
+
         inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){
-                    Log.d(TAG, "onCheckedChanged: inswitch true");
-                } else {
-                    Log.d(TAG, "onCheckedChanged: inswitch false");
-                }
+                locationService.filterIndoors(isChecked);
             }
         });
 
         outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){
-                    Log.d(TAG, "onCheckedChanged: outswitch true");
-                } else {
-                    Log.d(TAG, "onCheckedChanged: outswitch false");
-                }
+                locationService.filterOutdoors(isChecked);
             }
         });
 
