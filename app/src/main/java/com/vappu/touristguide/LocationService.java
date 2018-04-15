@@ -1,5 +1,6 @@
 package com.vappu.touristguide;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -7,11 +8,13 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -30,27 +33,18 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
+import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
 // LocationService, start a new service that tracks the user's location and lets them know of interesting places
 // place detection would go here too
 
 public class LocationService extends Service {
-
-    public ServiceState state;
-
-    public enum ServiceState{
-        RUNNING,
-        STOPPED
-    }
-
-    public ServiceState getState(){
-        return this.state;
-    }
 
     // define TAG for logs
     private static final String TAG = LocationService.class.getSimpleName();
@@ -61,20 +55,16 @@ public class LocationService extends Service {
     // default location which will be used if location unavailable
     private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
 
-    private boolean mLocationPermissionGranted = false;
-
     private PlaceDetectionClient mPlaceDetectionClient;
     private LocationCallback mLocationCallBack;
     private LocationRequest mLocationRequest;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private NotificationManager notificationManager;
-    private String mPreviousPlaceId = "";
-    private ArrayList<Object> mTypesList;
-    private ArrayList<Object> mIndoorsList;
-
-    public ArrayList<Object> mNearbyList = new ArrayList<>();
-
+    private ArrayList<Integer> mTypesList;
+    private ArrayList<Integer> mIndoorsList;
+    private ArrayList<Integer> mOutdoorsList;
+    private String[] mPreviousArray = new String[2];
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -88,11 +78,8 @@ public class LocationService extends Service {
 
         createFilters();
 
-        //TODO delete
-        setLocationPermissionGranted(true);
-
         // Create Notification Channels
-        int importance = 0;
+        int importance;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             // Create notification channel for place detection alerts
             importance = NotificationManager.IMPORTANCE_DEFAULT;
@@ -109,6 +96,8 @@ public class LocationService extends Service {
             createNotificationChannel(importance, name, description, channelID);
         }
 
+        createNotification();
+
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -117,8 +106,7 @@ public class LocationService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     Log.d(TAG, "location " + location.toString());
-
-                    if(location.toString() != null){
+                    if (location.toString() != null) {
                         Log.d(TAG, "Location not null");
                         checkLikelyPlaces(location);
                     }
@@ -127,134 +115,130 @@ public class LocationService extends Service {
         };
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
+        mLocationRequest.setInterval(15000);
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         startLocationUpdates();
     }
 
+    public ArrayList<Integer> filterLists(boolean isIndoorChecked, boolean isOutdoorChecked) {
+        ArrayList<Integer> typesList = new ArrayList<>();
+
+        if (isIndoorChecked) {
+            typesList.addAll(mIndoorsList);
+        }
+        if (isOutdoorChecked) {
+            typesList.addAll(mOutdoorsList);
+        }
+        return typesList;
+    }
+
     private void createFilters() {
 
+        Log.d(TAG, "createFilters: ");
+        // TypesList is a master array of indoor and outdoor place types depending on which ones
+        // we want
         mTypesList = new ArrayList<>();
 
-        // filter grouping 1
-        //mTypesList.add(Place.TYPE_POINT_OF_INTEREST);
-
-        // activities and places
-        mTypesList.add(Place.TYPE_AMUSEMENT_PARK);
-        mTypesList.add(Place.TYPE_ART_GALLERY);
-        mTypesList.add(Place.TYPE_ZOO);
-        mTypesList.add(Place.TYPE_MUSEUM);
-        mTypesList.add(Place.TYPE_PARK);
-        mTypesList.add(Place.TYPE_STADIUM);
-        mTypesList.add(Place.TYPE_UNIVERSITY);
-        mTypesList.add(Place.TYPE_SPA);
-        mTypesList.add(Place.TYPE_LOCALITY);
-        mTypesList.add(Place.TYPE_SUBLOCALITY);
-
-        // religious places
-        mTypesList.add(Place.TYPE_CEMETERY);
-        mTypesList.add(Place.TYPE_PLACE_OF_WORSHIP);
-        mTypesList.add(Place.TYPE_CHURCH);
-        mTypesList.add(Place.TYPE_HINDU_TEMPLE);
-        mTypesList.add(Place.TYPE_MOSQUE);
-        mTypesList.add(Place.TYPE_SYNAGOGUE);
-
-        // places of authority
-        mTypesList.add(Place.TYPE_CITY_HALL);
-        mTypesList.add(Place.TYPE_EMBASSY);
-
-
-        // indoors places, not shops
+        // indoors places you can generally access
         mIndoorsList = new ArrayList<>();
         mIndoorsList.add(Place.TYPE_ART_GALLERY);
         mIndoorsList.add(Place.TYPE_MUSEUM);
-        mIndoorsList.add(Place.TYPE_SPA);
         mIndoorsList.add(Place.TYPE_LIBRARY);
 
+        // outdoors places and other buildings can generally not access
+        mOutdoorsList = new ArrayList<>();
+        mOutdoorsList.add(Place.TYPE_AMUSEMENT_PARK);
+        mOutdoorsList.add(Place.TYPE_ZOO);
+        mOutdoorsList.add(Place.TYPE_MUSEUM);
+        mOutdoorsList.add(Place.TYPE_PARK);
+        mOutdoorsList.add(Place.TYPE_STADIUM);
+        mOutdoorsList.add(Place.TYPE_UNIVERSITY);
+        mOutdoorsList.add(Place.TYPE_CEMETERY);
+        mOutdoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
+        mOutdoorsList.add(Place.TYPE_CITY_HALL);
+        mOutdoorsList.add(Place.TYPE_EMBASSY);
 
+        mTypesList.addAll(mOutdoorsList);
+        mTypesList.addAll(mIndoorsList);
     }
 
     private void startLocationUpdates() {
         try {
-            if(mLocationPermissionGranted) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.e(TAG, "startLocationUpdates: Permissions not enabled");
+                return;
+            } else {
                 mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallBack, null);
             }
-            else {
-                Log.e(TAG, "Current location is null. Using defaults.");
-            }
-        }
-        catch ( SecurityException e ){
+        } catch (SecurityException e) {
             Log.e("Exception: %s", e.getMessage());
         }
     }
 
-    private void checkNearbyWikiPlaces(Location location) {
-
-    }
-
-    @SuppressLint("MissingPermission")
     private void checkLikelyPlaces(Location location) {
         Log.d(TAG, "checkLikelyPlaces " + location);
-        if(mLocationPermissionGranted) {
-                Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
-                placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
-                    @Override
-                    public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
-                        if(task.isSuccessful()) {
-                            PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
+        @SuppressLint("MissingPermission") Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
+            placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
+                @Override
+                public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
+                    if (task.isSuccessful()) {
+                        PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
 
-                            // keep this until sure won't need all
-                            for (PlaceLikelihood placeLikelihood : likelyPlaces) {
-                                Log.i(TAG, String.format("Place '%s' has likelihood: %g",
-                                        placeLikelihood.getPlace().getName(),
-                                        placeLikelihood.getLikelihood()));
+                        // keep this until sure won't need all
+                        for (PlaceLikelihood placeLikelihood : likelyPlaces) {
+                            Log.i(TAG, String.format("Place '%s' has likelihood: %g",
+                                    placeLikelihood.getPlace().getName(),
+                                    placeLikelihood.getLikelihood()));
 
-                                String id = placeLikelihood.getPlace().getId();
+                            String id = placeLikelihood.getPlace().getId();
 
-                                Log.d(TAG, "PlaceTypes originally " + placeLikelihood.getPlace().getPlaceTypes());
-                                List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
-                                typeList.retainAll(mTypesList);
-                                Log.d(TAG, "PlaceTypes after retainall: " + typeList);
+                            Log.d(TAG, "PlaceTypes originally " + placeLikelihood.getPlace().getPlaceTypes());
+                            List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
+                            typeList.retainAll(mTypesList);
+                            Log.d(TAG, "PlaceTypes after retainall: " + typeList);
 
-                                // is not the same place as previously notified
-                                // proximity over threshold
-                                if (!(Objects.equals(id, mPreviousPlaceId))
-                                        && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD
-                                        && !typeList.isEmpty()) {
+                            // if the place was in previous 3 places, then do not send notification for it
+                            boolean isDuplicate = false;
+                            for (String previousId : mPreviousArray) {
+                                if (Objects.equals(id, previousId)) {
+                                    isDuplicate = true;
+                                }
+                            }
+
+
+                            if(!typeList.isEmpty()) {
+
+                                // TODO add all latlngs to a list
+                                LatLng latLng = placeLikelihood.getPlace().getLatLng();
+
+                                if (!isDuplicate && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
+
                                     Log.d(TAG, "onComplete: Passed, create notification");
                                     createInfoNotification(placeLikelihood.getPlace());
-                                    mPreviousPlaceId = id;
+
+                                    // shift to the right
+                                    System.arraycopy(mPreviousArray, 0, mPreviousArray, 1, mPreviousArray.length - 1);
+                                    mPreviousArray[0] = id;
+                                    Log.d(TAG, "onComplete: " + Arrays.toString(mPreviousArray));
                                     break;
                                 }
                             }
-                            // release PlaceLikelihoodBufferResponse
-                            likelyPlaces.release();
                         }
+                        likelyPlaces.release();
                     }
-                });
-
-
-        }
+                }
+            });
     }
 
-
-    public boolean isLocationPermissionGranted() {
-        return mLocationPermissionGranted;
-    }
-
-    public void setLocationPermissionGranted(boolean mLocationPermissionGranted) {
-        this.mLocationPermissionGranted = mLocationPermissionGranted;
-    }
-
-
-    public void createNotificationChannel(int importance, CharSequence name, String description, String channelID){
+    private void createNotificationChannel(int importance, CharSequence name, String description, String channelID) {
         // check the sdk version so that only doing this if sdk 8.0 and higher
         // since channels are a newer concept
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            //int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel mChannel = new NotificationChannel(channelID, name, importance);
             mChannel.setDescription(description);
             // Register the channel with the system; you can't change the importance
@@ -266,18 +250,19 @@ public class LocationService extends Service {
         }
 
     }
-/*
-    public void createNotification(String channelID, int priority){
+
+    public void createNotification(){
 
         Log.d(TAG, "service createNotification");
-        Intent notificationIntent = new Intent(this, InfoActivity.class);
+        Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new NotificationCompat.Builder(this, "channelID")
                 .setTicker(("message"))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle("Tourist guide")
-                .setContentText("running in the background")
+                .setContentText("Running in the background")
+                .setOngoing(true)
                 .setContentIntent(pi)
                 .setPriority(PRIORITY_MIN)
                 .setAutoCancel(false)
@@ -289,7 +274,7 @@ public class LocationService extends Service {
             notificationManager.notify(0, notification);
         }
     }
-*/
+
     public void createInfoNotification(Place place){
 
         String placeName = (String) place.getName();
@@ -299,11 +284,10 @@ public class LocationService extends Service {
         intent.putExtra("placeName", place.getName());
         intent.putExtra("placeLatLng", place.getLatLng());
 
-
-        Log.d(TAG, "service createNotification");
+        Log.d(TAG, "service createNotification " + placeName + place.getId());
         Intent notificationIntent = new Intent(intent);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getActivity(this,0 , notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new NotificationCompat.Builder(this, "channelID")
                 .setTicker(("message"))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
@@ -311,12 +295,13 @@ public class LocationService extends Service {
                 .setContentText(placeName)
                 .setContentIntent(pi)
                 .setPriority(PRIORITY_HIGH)
-                .setAutoCancel(false)
+                .setAutoCancel(true)
                 .build();
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (notificationManager != null) {
-            notificationManager.notify(0, notification);
+            // create a unique id for the notification
+            notificationManager.notify( 1, notification);
         }
     }
 
@@ -324,8 +309,7 @@ public class LocationService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-
-        if (notificationManager != null){
+        if (notificationManager != null) {
             notificationManager.cancelAll();
         }
     }

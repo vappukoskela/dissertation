@@ -14,17 +14,6 @@
         android:orientation="vertical"
         >
 
-        <ToggleButton
-            android:id="@+id/toggleButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/colorBG1"
-            android:textColor="@color/colorTextLight"
-            android:onClick="startService"
-            android:paddingBottom="20dp"
-            android:paddingTop="20dp"
-            android:textOn="Stop locating"
-            android:textOff="Start locating" />
 
         <Button
             android:id="@+id/mapButton"
@@ -65,34 +54,26 @@
                 android:textColor="@color/colorTextLight" />
 
             <Switch
-                android:id="@+id/switch1"
+                android:id="@+id/switchIn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingBottom="20dp"
                 android:paddingTop="20dp"
-                android:text="Switch"
+                android:text="Indoor Activities"
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight" />
 
             <Switch
-                android:id="@+id/switch2"
+                android:id="@+id/switchOut"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingBottom="20dp"
                 android:paddingTop="20dp"
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight"
-                android:text="Switch" />
+                android:text="Outdoor Activities" />
 
-            <Switch
-                android:id="@+id/switch3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingBottom="20dp"
-                android:paddingTop="20dp"
-                android:textAllCaps="true"
-                android:textColor="@color/colorTextLight"
-                android:text="Switch" />
+
         </LinearLayout>
 
 

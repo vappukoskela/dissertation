@@ -81,6 +81,7 @@ public class MapActivity extends AppCompatActivity
         // bind to service
         bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
+
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
             mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
@@ -106,7 +107,7 @@ public class MapActivity extends AppCompatActivity
 
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         // Build the map.
@@ -124,7 +125,7 @@ public class MapActivity extends AppCompatActivity
     }
 
 
-    /*
+
     @Override
     protected void onDestroy(){
         super.onDestroy();
@@ -146,7 +147,6 @@ public class MapActivity extends AppCompatActivity
         }
     }
 
-*/
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         Log.d(TAG, "onSaveInstanceState");
@@ -198,6 +198,13 @@ public class MapActivity extends AppCompatActivity
         }
     }
 
+    private void createMarkers(){
+        // create all markers
+        // show and hide corresponding to filters
+        // weakhasmap for markers <marker, placeId
+
+
+    }
 
     // get permissions
     private void getLocationPermission() {

@@ -53,10 +53,14 @@ public class InfoActivity extends AppCompatActivity {
 
         // check if null
         if (extras != null) {
+            // TODO remove name from identifiers - get this from placeID
+
             // get the latitude and longitude of the place as a LatLng Object
             poiLatLng = extras.getParcelable("placeLatLng");
             String name = extras.getString("placeName");
             String placeID = extras.getString("placeID");
+
+            Log.d(TAG, "onCreate: " + name + placeID);
 
             TextView title = findViewById(R.id.infoText);
             title.setText(name);

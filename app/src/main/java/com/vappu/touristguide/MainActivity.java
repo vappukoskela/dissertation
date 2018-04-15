@@ -13,6 +13,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.ToggleButton;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
     private boolean mIsServiceRunning;
-    private LocationService locationService;
+    private LocationService locationService = new LocationService();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +37,32 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkingPermissions();
 
+        Switch inSwitch = findViewById(R.id.switchIn);
+        Switch outSwitch = findViewById(R.id.switchOut);
+
+        inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Log.d(TAG, "onCheckedChanged: inswitch true");
+                } else {
+                    Log.d(TAG, "onCheckedChanged: inswitch false");
+                }
+            }
+        });
+
+        outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Log.d(TAG, "onCheckedChanged: outswitch true");
+                } else {
+                    Log.d(TAG, "onCheckedChanged: outswitch false");
+                }
+            }
+        });
+
+        /*
         toggleButton = findViewById(R.id.toggleButton);
 
         // find out if the service is already running
@@ -46,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
         if(mIsServiceRunning){
             toggleButton.setChecked(true);
         } else { toggleButton.setChecked(false); }
+        */
     }
 
     @Override
@@ -57,12 +86,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void openMap(View view) {
-        // Placeholder button
-        // tackling the location stuff first
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
     }
 
+    /*
     public void startService(View view) {
         Log.d(TAG, "startService");
         Intent intent = new Intent(this, LocationService.class);
@@ -81,45 +109,35 @@ public class MainActivity extends AppCompatActivity {
             mIsServiceRunning = false;
         }
     }
+    */
 
     @Override
     public void onDestroy(){
-     //   unbindService(serviceConnection);
+        unbindService(serviceConnection);
         super.onDestroy();
     }
 
-
-    private void startService() {
-        Intent intent = new Intent(this, LocationService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
-        mIsServiceRunning = true;
-    }
-
     private void checkingPermissions() {
-
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             // need to ask permissions! permission has not been granted
-            requestStoragePermission();
+            requestLocationPermission();
+            Log.d(TAG, "checkingPermissions: if");
         }
         else {
+            Log.d(TAG, "checkingPermissions: else");
             startService();
         }
     }
 
-
-
-    private void requestStoragePermission() {
+    private void requestLocationPermission() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
-            System.out.println("requeststoragepermissions if");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION  );
-
         }
         else {
-            System.out.println("requeststoragepermission else");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
@@ -136,14 +154,18 @@ public class MainActivity extends AppCompatActivity {
                     startService();
 
                 } else {
-                    System.out.println("on requestpermissionsresult else");
+                    requestLocationPermission();
                     // permission denied
                 }
             }
         }
     }
 
-
+    private void startService() {
+        Intent intent = new Intent(this, LocationService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
+        mIsServiceRunning = true;
+    }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -159,6 +181,4 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onServiceDisconnected" );
         }
     };
-
-
 }
