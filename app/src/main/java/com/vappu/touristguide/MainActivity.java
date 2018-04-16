@@ -37,9 +37,26 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkingPermissions();
 
+
+        /*
+        toggleButton = findViewById(R.id.toggleButton);
+
+        // find out if the service is already running
+        if(savedInstanceState != null) {
+            mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
+        } else { mIsServiceRunning = false; } // if there was no saved instance, should start the service
+
+        // if there is a service running set togglebutton to reflect state appropriately
+        if(mIsServiceRunning){
+            toggleButton.setChecked(true);
+        } else { toggleButton.setChecked(false); }
+        */
+    }
+
+    // requires the service to be up and running
+    private void switchButtonOperations(){
         Switch inSwitch = findViewById(R.id.switchIn);
         Switch outSwitch = findViewById(R.id.switchOut);
-
 
         inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -55,19 +72,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        /*
-        toggleButton = findViewById(R.id.toggleButton);
-
-        // find out if the service is already running
-        if(savedInstanceState != null) {
-            mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
-        } else { mIsServiceRunning = false; } // if there was no saved instance, should start the service
-
-        // if there is a service running set togglebutton to reflect state appropriately
-        if(mIsServiceRunning){
-            toggleButton.setChecked(true);
-        } else { toggleButton.setChecked(false); }
-        */
+        // set the switch buttons to initially be true
+        inSwitch.setChecked(true);
+        outSwitch.setChecked(true);
     }
 
     @Override
@@ -116,10 +123,8 @@ public class MainActivity extends AppCompatActivity {
                 != PackageManager.PERMISSION_GRANTED) {
             // need to ask permissions! permission has not been granted
             requestLocationPermission();
-            Log.d(TAG, "checkingPermissions: if");
         }
         else {
-            Log.d(TAG, "checkingPermissions: else");
             startService();
         }
     }
@@ -166,6 +171,10 @@ public class MainActivity extends AppCompatActivity {
                                        IBinder service) {
             locationService = ((LocationService.LocalBinder) service).getService();
             Log.d(TAG, "onServiceConnected");
+
+            // the buttons require the service to be connected
+            switchButtonOperations();
+
         }
 
         @Override

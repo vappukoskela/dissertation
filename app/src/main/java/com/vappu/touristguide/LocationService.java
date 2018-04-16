@@ -16,6 +16,7 @@ import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -64,6 +65,8 @@ public class LocationService extends Service {
     private ArrayList<Integer> mTypesList;
     private ArrayList<Integer> mIndoorsList;
     private ArrayList<Integer> mOutdoorsList;
+    private ArrayList<LatLng> mLatLngList;
+
     private String[] mPreviousArray = new String[2];
 
 
@@ -184,7 +187,8 @@ public class LocationService extends Service {
                     if (task.isSuccessful()) {
                         PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
 
-                        // keep this until sure won't need all
+//                        mLatLngList.clear();
+
                         for (PlaceLikelihood placeLikelihood : likelyPlaces) {
                             Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                     placeLikelihood.getPlace().getName(),
@@ -205,11 +209,17 @@ public class LocationService extends Service {
                                 }
                             }
 
-
                             if(!typeList.isEmpty()) {
-
-                                // TODO add all latlngs to a list
                                 LatLng latLng = placeLikelihood.getPlace().getLatLng();
+//                                mLatLngList.add(latLng);
+                                Intent intent = new Intent("markerEvent");
+                                String placeID = placeLikelihood.getPlace().getId();
+                                intent.putExtra("placeID", placeID);
+                                intent.putExtra("latlng", placeLikelihood.getPlace().getLatLng());
+                                intent.putExtra("name", placeLikelihood.getPlace().getName());
+                                Log.d(TAG, "onComplete: placeID " + placeID);
+                                LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
+
 
                                 if (!isDuplicate && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
 
@@ -227,7 +237,12 @@ public class LocationService extends Service {
                         likelyPlaces.release();
                     }
                 }
+
             });
+
+        Log.d(TAG, "checkLikelyPlaces: END");
+
+
     }
 
     private void createNotificationChannel(int importance, CharSequence name, String description, String channelID) {

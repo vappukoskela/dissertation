@@ -58,34 +58,31 @@ public class InfoActivity extends AppCompatActivity {
             // get the latitude and longitude of the place as a LatLng Object
             poiLatLng = extras.getParcelable("placeLatLng");
             String name = extras.getString("placeName");
-            String placeID = extras.getString("placeID");
-
-            Log.d(TAG, "onCreate: " + name + placeID);
-
-            TextView title = findViewById(R.id.infoText);
-            title.setText(name);
-
-            FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
-            new FetchInfoTask().execute(paramsKey);
-
-            final TextView gTextPrice = findViewById(R.id.gTextPrice);
+            final String placeID = extras.getString("placeID");
+            Log.d(TAG, "onCreate: placeID " + placeID);
             final TextView gTextAddress = findViewById(R.id.gTextAddress);
             mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
                 @Override
                 public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
-                    PlaceBufferResponse places = task.getResult();
-                    Place thisPlace = places.get(0);
-                    int pricelevel = thisPlace.getPriceLevel();
-                    String address = (String) thisPlace.getAddress();
+                    if(task.isSuccessful()) {
+                        PlaceBufferResponse places = task.getResult();
+                        Place thisPlace = places.get(0);
+                        String name = (String) thisPlace.getName();
+                        poiLatLng = thisPlace.getLatLng();
 
-                    // TODO bug here
-                    if (pricelevel >= 0){
-                        gTextPrice.setText(pricelevel);
+                        String address = (String) thisPlace.getAddress();
+                        if (address != null) {
+                            gTextAddress.setText(address);
+                        }
+
+                        TextView title = findViewById(R.id.infoText);
+                        title.setText(name);
+
+                        FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
+                        new FetchInfoTask().execute(paramsKey);
+
+                        places.release();
                     }
-                    if (address != null){
-                        gTextAddress.setText(address);
-                    }
-                    places.release();
                 }
             });
 

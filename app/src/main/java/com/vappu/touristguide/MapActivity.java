@@ -1,8 +1,10 @@
 package com.vappu.touristguide;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -11,6 +13,7 @@ import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
@@ -27,6 +30,10 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.util.WeakHashMap;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
@@ -69,17 +76,23 @@ public class MapActivity extends AppCompatActivity
 
     // service
     private LocationService mLocationService;
+    private WeakHashMap<Marker, String> mMarkers;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
 
+        mMarkers = new WeakHashMap<Marker, String>();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
         // bind to service
         bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
+                new IntentFilter("markerEvent"));
 
 
         // Retrieve location and camera position from saved instance state.
@@ -114,8 +127,6 @@ public class MapActivity extends AppCompatActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-
     }
 
     @Override
@@ -124,28 +135,32 @@ public class MapActivity extends AppCompatActivity
         super.onResume();
     }
 
-
-
     @Override
     protected void onDestroy(){
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
+
         if ( serviceConnection != null ){
             unbindService(serviceConnection);
             serviceConnection = null;
         }
     }
 
-    @Override
-    protected void onPause(){
-        super.onPause();
-        Log.d(TAG, "onPause");
-        if ( serviceConnection != null ){
-            unbindService(serviceConnection);
-            serviceConnection = null;
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String placeID = intent.getStringExtra("placeID");
+            LatLng latLng = intent.getParcelableExtra("latlng");
+            String name = intent.getStringExtra("name");
+            Log.d(TAG, "onReceive: placeID " + placeID);
+
+            Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(name));
+            mMarkers.put(marker, placeID);
+
         }
-    }
+    };
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -173,9 +188,6 @@ public class MapActivity extends AppCompatActivity
 
         // Ask for location updates
         startLocationUpdates();
-
-        // listen for clicks at Points of Interests allowing to display info that user wants to see
-       // mMap.setOnPoiClickListener(this);
     }
 
 
@@ -196,14 +208,6 @@ public class MapActivity extends AppCompatActivity
         } catch (SecurityException e) {
             Log.e("Exception: %s", e.getMessage());
         }
-    }
-
-    private void createMarkers(){
-        // create all markers
-        // show and hide corresponding to filters
-        // weakhasmap for markers <marker, placeId
-
-
     }
 
     // get permissions
@@ -263,21 +267,6 @@ public class MapActivity extends AppCompatActivity
             Log.e("Exception: %s", e.getMessage());
         }
     }
-
-    /*
-    @Override
-    public void onPoiClick(PointOfInterest pointOfInterest) {
-        Toast.makeText(this, "clicked " + pointOfInterest.name, Toast.LENGTH_SHORT).show();
-
-        // once clicking point of interest, open the info activity for that POI
-        Intent intent = new Intent(this, InfoActivity.class);
-
-        intent.putExtra("placeID", pointOfInterest.placeId);
-        intent.putExtra("placeName", pointOfInterest.name);
-        intent.putExtra("placeLatLng", pointOfInterest.latLng);
-        startActivity(intent);
-    }
-*/
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
