@@ -92,7 +92,7 @@ public class MapActivity extends AppCompatActivity
         bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
-                new IntentFilter("markerEvent"));
+                new IntentFilter("locationEvent"));
 
 
         // Retrieve location and camera position from saved instance state.

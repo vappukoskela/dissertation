@@ -34,24 +34,39 @@
             android:paddingEnd="50dp">
 
             <TextView
-                android:id="@+id/textView"
+                android:id="@+id/locationText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingBottom="20dp"
                 android:paddingTop="20dp"
-                android:text="TextView"
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight" />
 
-            <TextView
-                android:id="@+id/textView2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="20dp"
-                android:paddingTop="20dp"
-                android:text="TextView"
-                android:textAllCaps="true"
-                android:textColor="@color/colorTextLight" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tempText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingBottom="20dp"
+                    android:paddingTop="20dp"
+                    android:textAllCaps="true"
+                    android:textColor="@color/colorTextLight" />
+
+                <TextView
+                    android:id="@+id/weatherText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingBottom="20dp"
+                    android:paddingTop="20dp"
+                    android:textAllCaps="true"
+                    android:textColor="@color/colorTextLight"  />
+            </LinearLayout>
 
             <Switch
                 android:id="@+id/switchIn"

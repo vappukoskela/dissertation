@@ -1,34 +1,54 @@
 package com.vappu.touristguide;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.Switch;
-import android.widget.ToggleButton;
+import android.widget.TextView;
+
+import com.google.android.gms.maps.model.LatLng;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+
+import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
+    private static final String APIKEY = "9e80e9560584debd18b3d5ddd160c524";
     // tag for logs
     private final String TAG = MainActivity.class.getSimpleName();
-
-    ToggleButton toggleButton;
 
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
     private boolean mIsServiceRunning;
     private LocationService locationService;
+    private LatLng mCurrentLocation;
+    private boolean isTimeToUpdate;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,21 +56,31 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         checkingPermissions();
+        isTimeToUpdate = true;
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
+                new IntentFilter("locationEvent"));
+    }
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(isTimeToUpdate) {
+                mCurrentLocation = intent.getParcelableExtra("latlng");
+                WeatherTaskParams weatherTaskParams = new WeatherTaskParams(mCurrentLocation.latitude, mCurrentLocation.longitude);
+                new WeatherTask().execute(weatherTaskParams);
+            }
+        }
+    };
 
 
-        /*
-        toggleButton = findViewById(R.id.toggleButton);
+    private void updateWeatherUI(String place, String temp, String weatherDesc) {
+        TextView locationTV = findViewById(R.id.locationText);
+        TextView temperatureTV = findViewById(R.id.tempText);
+        TextView weatherTV = findViewById(R.id.weatherText);
 
-        // find out if the service is already running
-        if(savedInstanceState != null) {
-            mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
-        } else { mIsServiceRunning = false; } // if there was no saved instance, should start the service
-
-        // if there is a service running set togglebutton to reflect state appropriately
-        if(mIsServiceRunning){
-            toggleButton.setChecked(true);
-        } else { toggleButton.setChecked(false); }
-        */
+        locationTV.setText(place);
+        temperatureTV.setText(temp);
+        weatherTV.setText(weatherDesc);
     }
 
     // requires the service to be up and running
@@ -89,31 +119,11 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
     }
-
-    /*
-    public void startService(View view) {
-        Log.d(TAG, "startService");
-        Intent intent = new Intent(this, LocationService.class);
-        if (!mIsServiceRunning){
-            // toggle button has been clicked - start service
-            Log.d(TAG, "Starting LocationService...");
-           // startService(intent);
-            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
-            mIsServiceRunning = true;
-        }
-        else {
-            // stop service if there is service running
-            Log.d(TAG, "Stopping LocationService...");
-            unbindService(serviceConnection);
-            stopService(intent);
-            mIsServiceRunning = false;
-        }
-    }
-    */
-
+ 
     @Override
     public void onDestroy(){
         unbindService(serviceConnection);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
         super.onDestroy();
     }
 
@@ -163,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LocationService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
         mIsServiceRunning = true;
+
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -183,4 +194,90 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onServiceDisconnected" );
         }
     };
+
+    // wrapper class for parameters to be used in the AsyncTask
+    private static class WeatherTaskParams {
+        double latitude;
+        double longitude;
+
+
+        WeatherTaskParams(double lat, double lon) {
+            this.latitude = lat;
+            this.longitude = lon;
+        }
+    }
+
+    private class WeatherTask extends AsyncTask<WeatherTaskParams, Integer, String> {
+        @Override
+        protected void onPostExecute(String result) {
+            parseResult(result);
+        }
+
+        private void parseResult(String result) {
+            try {
+                JSONObject jsonObject = new JSONObject(result);
+                String place = jsonObject.getString("name");
+                JSONObject tempObj = jsonObject.getJSONObject("main");
+                int celsius = (int) tempObj.getDouble("temp"); // temperature
+
+                String temp = "" + celsius + (char) 0x00B0;
+
+                JSONArray descArr = jsonObject.getJSONArray("weather");
+                JSONObject descObj = descArr.getJSONObject(0);
+                String weatherDesc = descObj.getString("description");
+
+                Log.d(TAG, "parseResult: place " + place + temp + weatherDesc);
+
+                updateWeatherUI(place, temp, weatherDesc);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected String doInBackground(WeatherTaskParams... weatherTaskParams) {
+            double lat = weatherTaskParams[0].latitude;
+            double lon = weatherTaskParams[0].longitude;
+
+            String url = "https://api.openweathermap.org/data/2.5/weather?" + "lat=" + lat + "&lon=" + lon +
+                    "&units=metric&appid=" + APIKEY;
+
+            String result = "";
+
+            try {
+                URL titleEndPoint = new URL(url);
+                HttpsURLConnection conn = (HttpsURLConnection) titleEndPoint.openConnection();
+                conn.setRequestProperty("User-Agent", "tourist-guide");
+                conn.setRequestMethod("GET");
+
+
+                if (conn.getResponseCode() == 200) {
+                    Log.d(TAG, "response code 200");
+                    // Get JSON
+                    InputStream inputStream = conn.getInputStream();
+                    InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line).append("\n");
+                    }
+                    bufferedReader.close();
+                    Log.d(TAG, stringBuilder.toString());
+                    result = stringBuilder.toString();
+
+                } else {
+                    Log.e(TAG, "response code " + conn.getResponseCode());
+                }
+                conn.disconnect();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                result = "Unable to connect. Please check your connection";
+            }
+            return result;
+        }
+    }
+
+
 }

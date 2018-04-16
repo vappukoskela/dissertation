@@ -54,12 +54,22 @@ public class LocationService extends Service {
     private static final double PLACELIKELIHOODTHRESHOLD = 0.0;
 
     // default location which will be used if location unavailable
-    private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
+    public final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
 
     private PlaceDetectionClient mPlaceDetectionClient;
     private LocationCallback mLocationCallBack;
     private LocationRequest mLocationRequest;
     private FusedLocationProviderClient mFusedLocationProviderClient;
+
+    public LatLng getmCurrentLocation() {
+        return mCurrentLocation;
+    }
+
+    public void setmCurrentLocation(LatLng mCurrentLocation) {
+        this.mCurrentLocation = mCurrentLocation;
+    }
+
+    private LatLng mCurrentLocation;
 
     private NotificationManager notificationManager;
     private ArrayList<Integer> mTypesList;
@@ -116,6 +126,8 @@ public class LocationService extends Service {
                     if (location.toString() != null) {
                         Log.d(TAG, "Location not null");
                         checkLikelyPlaces(location);
+                        LatLng latlng = new LatLng(location.getLatitude(), location.getLongitude());
+                        setmCurrentLocation(latlng);
                     }
                 }
             }
@@ -212,7 +224,7 @@ public class LocationService extends Service {
                             if(!typeList.isEmpty()) {
                                 LatLng latLng = placeLikelihood.getPlace().getLatLng();
 //                                mLatLngList.add(latLng);
-                                Intent intent = new Intent("markerEvent");
+                                Intent intent = new Intent("locationEvent");
                                 String placeID = placeLikelihood.getPlace().getId();
                                 intent.putExtra("placeID", placeID);
                                 intent.putExtra("latlng", placeLikelihood.getPlace().getLatLng());
