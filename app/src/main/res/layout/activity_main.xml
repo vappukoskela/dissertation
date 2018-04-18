@@ -33,6 +33,7 @@
             android:paddingStart="50dp"
             android:paddingEnd="50dp">
 
+
             <TextView
                 android:id="@+id/locationText"
                 android:layout_width="wrap_content"
@@ -41,6 +42,28 @@
                 android:paddingTop="20dp"
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight" />
+
+            <ProgressBar
+                android:id="@+id/progressSpinner"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                tools:visibility="gone" />
+
+            <TextView
+                android:id="@+id/locatingText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Locating... Please make sure Location services are enabled"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                tools:visibility="gone"
+                android:textAppearance="@android:style/TextAppearance.Material.Small"
+                android:textColor="@color/colorTextLight"
+                android:textSize="12sp"
+                android:textStyle="italic" />
 
             <LinearLayout
                 android:layout_width="match_parent"

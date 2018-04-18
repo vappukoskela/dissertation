@@ -26,7 +26,6 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.GeoDataClient;
-import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -35,8 +34,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-
-import java.util.WeakHashMap;
 
 /**
  * An activity that displays a map showing the place at the device's current location.
@@ -52,10 +49,6 @@ public class MapActivity extends AppCompatActivity
     private static final String TAG = MapActivity.class.getSimpleName();
 
     private GoogleMap mMap;
-
-    // The entry points to the Places API.
-    private GeoDataClient mGeoDataClient;
-    private PlaceDetectionClient mPlaceDetectionClient;
 
     // The entry point to the Fused Location Provider.
     private FusedLocationProviderClient mFusedLocationProviderClient;
@@ -79,14 +72,11 @@ public class MapActivity extends AppCompatActivity
 
     // service
     private LocationService mLocationService;
-    private WeakHashMap<Marker, String> mMarkers;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
-
-        mMarkers = new WeakHashMap<Marker, String>();
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
@@ -105,7 +95,7 @@ public class MapActivity extends AppCompatActivity
                             mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
         }
 
-        mGeoDataClient = Places.getGeoDataClient(this, null);
+        GeoDataClient geoDataClient = Places.getGeoDataClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
@@ -168,8 +158,6 @@ public class MapActivity extends AppCompatActivity
         Marker marker;
         marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
         marker.setTag(id);
-       // mMarkers.put(marker, id);
-
     }
 
     @Override

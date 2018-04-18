@@ -18,6 +18,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -111,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 mCurrentLocation = intent.getParcelableExtra("latlng");
                 WeatherTaskParams weatherTaskParams = new WeatherTaskParams(mCurrentLocation.latitude, mCurrentLocation.longitude);
                 new WeatherTask().execute(weatherTaskParams);
+                isTimeToUpdate = false;
             }
         }
     };
@@ -238,9 +240,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class WeatherTask extends AsyncTask<WeatherTaskParams, Integer, String> {
+
+        ProgressBar progressBar = findViewById(R.id.progressSpinner);
+        TextView locatingText = findViewById(R.id.locatingText);
+
         @Override
         protected void onPostExecute(String result) {
             parseResult(result);
+            progressBar.setVisibility(View.GONE);
+            locatingText.setVisibility(View.GONE);
         }
 
         private void parseResult(String result) {
@@ -263,6 +271,14 @@ public class MainActivity extends AppCompatActivity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
+            progressBar.setIndeterminate(true);
+            locatingText.setVisibility(View.VISIBLE);
         }
 
         @Override
