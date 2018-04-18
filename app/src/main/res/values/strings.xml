@@ -3,4 +3,5 @@
     <string name="title_activity_maps">Map</string>
     <string name="notification_text">Running in the background…</string>
     <string name="placefound_text">Place detected</string>
+    <string name="badWeatherString">The weather doesn\'t look too good. Why not explore indoor activities today?</string>
 </resources>

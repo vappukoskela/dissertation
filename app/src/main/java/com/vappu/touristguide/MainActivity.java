@@ -118,14 +118,25 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
-    private void updateWeatherUI(String place, String temp, String weatherDesc, String weatherMain) {
+    private void updateWeatherUI(String place, String temp, String weatherDesc, int weatherID) {
         TextView locationTV = findViewById(R.id.locationText);
         TextView temperatureTV = findViewById(R.id.tempText);
         TextView weatherTV = findViewById(R.id.weatherText);
+        TextView badWeather = findViewById(R.id.badWeatherText);
+        badWeather.setText("");
 
         locationTV.setText(place);
         temperatureTV.setText(temp);
         weatherTV.setText(weatherDesc);
+
+        // if true, it is raining, there is a hurricane, snowing etc.
+        // stay indoors!
+        if (weatherID < 800 || weatherID >= 900){
+            outSwitch.setChecked(false);
+            badWeather.setText(R.string.badWeatherString);
+        }
+        Log.d(TAG, "updateWeatherUI: " + weatherID);
+
     }
 
     @Override
@@ -246,11 +257,11 @@ public class MainActivity extends AppCompatActivity {
                 JSONArray descArr = jsonObject.getJSONArray("weather");
                 JSONObject descObj = descArr.getJSONObject(0);
                 String weatherDesc = descObj.getString("description");
-                String weatherMain = descObj.getString("main");
+                int weatherID = descObj.getInt("id");
 
                 Log.d(TAG, "parseResult: place " + place + temp + weatherDesc);
 
-                updateWeatherUI(place, temp, weatherDesc, weatherMain);
+                updateWeatherUI(place, temp, weatherDesc, weatherID);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
