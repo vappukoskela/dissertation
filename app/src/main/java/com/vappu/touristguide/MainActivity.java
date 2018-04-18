@@ -75,8 +75,6 @@ public class MainActivity extends AppCompatActivity {
             outSwitch.setChecked(true);
         }
 
-
-
         inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

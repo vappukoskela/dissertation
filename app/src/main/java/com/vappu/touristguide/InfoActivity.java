@@ -58,11 +58,7 @@ public class InfoActivity extends AppCompatActivity {
 
         // check if null
         if (extras != null) {
-            // TODO remove name from identifiers - get this from placeID
-
             // get the latitude and longitude of the place as a LatLng Object
-            poiLatLng = extras.getParcelable("placeLatLng");
-            String name = extras.getString("placeName");
             final String placeID = extras.getString("placeID");
             Log.d(TAG, "onCreate: placeID " + placeID);
             final TextView gTextAddress = findViewById(R.id.gTextAddress);
@@ -89,7 +85,7 @@ public class InfoActivity extends AppCompatActivity {
                         TextView title = findViewById(R.id.infoText);
                         title.setText(name);
 
-                        FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
+                        FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name);
                         new FetchInfoTask().execute(paramsKey);
 
                         // Attributions required by Google
@@ -105,8 +101,6 @@ public class InfoActivity extends AppCompatActivity {
                     }
                 }
             });
-
-
         } else {
             Log.d(TAG, "onCreate: Nothing passed in extras!");
         }
@@ -117,15 +111,12 @@ public class InfoActivity extends AppCompatActivity {
         double latitude;
         double longitude;
         String placeName;
-        String placeID;
 
-
-        FetchTaskParams(double lat, double lon, String name, String id) {
+        FetchTaskParams(double lat, double lon, String name) {
             Log.d(TAG, "FetchTaskParams");
             this.latitude = lat;
             this.longitude = lon;
             this.placeName = name;
-            this.placeID = id;
         }
     }
 
@@ -152,19 +143,28 @@ public class InfoActivity extends AppCompatActivity {
                 jsonObject = new JSONObject(jsonString);
                 JSONArray jsonArray = null;
                 if(key.equals("extract")) {
-                    result = jsonObject.get("extract").toString();
+                    if(jsonObject.get("type").equals("disambiguation")){
 
+                    }
+                    else {
+                        result = jsonObject.get("extract").toString();
+                    }
                     JSONObject temp = jsonObject.getJSONObject("content_urls");
                     Log.d(TAG, "parseJSON: TEMP " + temp);
-
                     wikiLink = jsonObject.getJSONObject("content_urls").getJSONObject("desktop").getString("page");
                 }
-
                 else {
                     JSONObject queryObject = jsonObject.getJSONObject("query");
 
                     if (searchQueryType.equals("geo")) {
                         jsonArray = queryObject.getJSONArray("geosearch");
+                        for(int i = 0; i < jsonArray.length(); i++) {
+                            jsonObject = jsonArray.getJSONObject(i);
+                            result = jsonObject.getString("title");
+                            if(isFuzzyCorrect(result, name)){
+                                return result;
+                            }
+                        }
                     } else if (searchQueryType.equals("search")) {
                         jsonArray = queryObject.getJSONArray("search");
                     }
@@ -208,7 +208,6 @@ public class InfoActivity extends AppCompatActivity {
                 HttpsURLConnection conn = (HttpsURLConnection) titleEndPoint.openConnection();
                 conn.setRequestProperty("User-Agent", "tourist-guide");
                 conn.setRequestMethod("GET");
-
 
                 if (conn.getResponseCode() == 200) {
                     // everything is fine!
@@ -275,7 +274,6 @@ public class InfoActivity extends AppCompatActivity {
             String summaryText = "";
 
             if(isFuzzyCorrect(geoQueryResult, name)){
-
                 summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + geoQueryResult), "extract");
             }
             else if(isFuzzyCorrect(searchQueryResult, name)){
@@ -287,6 +285,7 @@ public class InfoActivity extends AppCompatActivity {
             return summaryText;
         }
     }
+
     // Toolbar
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

@@ -10,6 +10,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.media.RingtoneManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -50,9 +51,6 @@ public class LocationService extends Service {
     // define TAG for logs
     private static final String TAG = LocationService.class.getSimpleName();
 
-    // the threshold which determines whether to send notification or not
-    private static final double PLACELIKELIHOODTHRESHOLD = 0.0;
-
     // default location which will be used if location unavailable
     public final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
 
@@ -61,13 +59,6 @@ public class LocationService extends Service {
     private LocationRequest mLocationRequest;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
-    public LatLng getmCurrentLocation() {
-        return mCurrentLocation;
-    }
-
-    public void setmCurrentLocation(LatLng mCurrentLocation) {
-        this.mCurrentLocation = mCurrentLocation;
-    }
 
     private LatLng mCurrentLocation;
 
@@ -75,10 +66,8 @@ public class LocationService extends Service {
     private ArrayList<Integer> mTypesList;
     private ArrayList<Integer> mIndoorsList;
     private ArrayList<Integer> mOutdoorsList;
-    private ArrayList<LatLng> mLatLngList;
 
-    private String[] mPreviousArray = new String[5];
-
+    private String[] mPreviousArray = new String[10];
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -127,8 +116,6 @@ public class LocationService extends Service {
                         Log.d(TAG, "Location not null");
                         checkLikelyPlaces(location);
                         LatLng latlng = new LatLng(location.getLatitude(), location.getLongitude());
-                        setmCurrentLocation(latlng);
-
                         Intent intent = new Intent("locationEvent");
                         intent.putExtra("latlng", latlng);
                         LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
@@ -212,10 +199,16 @@ public class LocationService extends Service {
 
                             Log.d(TAG, "PlaceTypes originally " + placeLikelihood.getPlace().getPlaceTypes());
                             List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
-                            typeList.retainAll(mTypesList);
+
+                            if(likelyPlaces.getCount() < 5) {
+                                if (!typeList.contains(1013) && !typeList.contains(34)) {
+                                    typeList.retainAll(mTypesList);
+                                }
+                            }
+                            else {typeList.retainAll(mTypesList);}
                             Log.d(TAG, "PlaceTypes after retainall: " + typeList);
 
-                            // if the place was in previous 3 places, then do not send notification for it
+                            // if the place was in previous 10 places, then do not send notification for it
                             boolean isDuplicate = false;
                             for (String previousId : mPreviousArray) {
                                 if (Objects.equals(id, previousId)) {
@@ -233,8 +226,7 @@ public class LocationService extends Service {
                                 LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
                                 Log.d(TAG, "onComplete: BRROADCAST");
 
-                                if (!isDuplicate && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
-
+                                if (!isDuplicate) {
                                     Log.d(TAG, "onComplete: Passed, create notification");
                                     createInfoNotification(placeLikelihood.getPlace());
 
@@ -272,7 +264,6 @@ public class LocationService extends Service {
     }
 
     public void createNotification(){
-
         Log.d(TAG, "service createNotification");
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -296,13 +287,9 @@ public class LocationService extends Service {
     }
 
     public void createInfoNotification(Place place){
-
         String placeName = (String) place.getName();
-
         Intent intent = new Intent(this, InfoActivity.class);
         intent.putExtra("placeID", place.getId());
-        intent.putExtra("placeName", place.getName());
-        intent.putExtra("placeLatLng", place.getLatLng());
 
         Log.d(TAG, "service createNotification " + placeName + place.getId());
         Intent notificationIntent = new Intent(intent);
@@ -315,6 +302,7 @@ public class LocationService extends Service {
                 .setContentText(placeName)
                 .setContentIntent(pi)
                 .setPriority(PRIORITY_HIGH)
+                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setAutoCancel(true)
                 .build();
 

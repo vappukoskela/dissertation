@@ -194,8 +194,6 @@ public class MapActivity extends AppCompatActivity
 
                 Intent intent = new Intent(MapActivity.this, InfoActivity.class);
                 intent.putExtra("placeID", marker.getTag().toString());
-                intent.putExtra("placeName", marker.getTitle());
-                intent.putExtra("placeLatLng", marker.getPosition());
 
                 startActivity(intent);
             }
