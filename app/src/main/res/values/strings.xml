@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TouristGuide</string>
+    <string name="app_name">Hidden Information Guide</string>
     <string name="title_activity_maps">Map</string>
     <string name="notification_text">Running in the background…</string>
     <string name="placefound_text">Place detected</string>

@@ -188,9 +188,11 @@ public class InfoActivity extends AppCompatActivity {
             TextView body = findViewById(R.id.contentText);
             body.setText(resultString);
 
-            TextView source = findViewById(R.id.sourceText);
-            String wikiText = "Learn more: " + wikiLink;
-            source.setText(wikiText);
+            if ( wikiLink != null ) {
+                TextView source = findViewById(R.id.sourceText);
+                String wikiText = "Learn more: " + wikiLink;
+                source.setText(wikiText);
+            }
         }
 
         @Override
