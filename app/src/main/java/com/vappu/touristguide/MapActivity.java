@@ -157,10 +157,17 @@ public class MapActivity extends AppCompatActivity
             String name = intent.getStringExtra("name");
             Log.d(TAG, "onReceive: placeID " + placeID);
 
-            Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(name));
-            mMarkers.put(marker, placeID);
+            addMarker(name, latLng, placeID);
         }
     };
+
+    private void addMarker(String title, LatLng pos, String id){
+        Marker marker;
+        marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
+        marker.setTag(id);
+       // mMarkers.put(marker, id);
+
+    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -178,7 +185,18 @@ public class MapActivity extends AppCompatActivity
     public void onMapReady(GoogleMap map) {
         Log.d(TAG, "onMapReady");
         mMap = map;
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
 
+                Intent intent = new Intent(MapActivity.this, InfoActivity.class);
+                intent.putExtra("placeID", marker.getTag().toString());
+                intent.putExtra("placeName", marker.getTitle());
+                intent.putExtra("placeLatLng", marker.getPosition());
+
+                startActivity(intent);
+            }
+        });
         // Prompt the user for permission.
         getLocationPermission();
 
