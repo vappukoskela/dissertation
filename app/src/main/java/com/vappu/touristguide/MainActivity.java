@@ -44,10 +44,15 @@ public class MainActivity extends AppCompatActivity {
 
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
+    private String KEY_INSWITCH = "inswitch";
+    private String KEY_OUTSWITCH = "outswitch";
+
     private boolean mIsServiceRunning;
     private LocationService locationService;
     private LatLng mCurrentLocation;
     private boolean isTimeToUpdate;
+    private Switch inSwitch;
+    private Switch outSwitch;
 
 
     @Override
@@ -56,15 +61,55 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         checkingPermissions();
+
+        inSwitch = findViewById(R.id.switchIn);
+        outSwitch = findViewById(R.id.switchOut);
+        if(savedInstanceState != null){
+            // restore state
+            mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
+            inSwitch.setChecked(savedInstanceState.getBoolean(KEY_INSWITCH));
+            outSwitch.setChecked(savedInstanceState.getBoolean(KEY_OUTSWITCH));
+        }
+        else {
+            inSwitch.setChecked(true);
+            outSwitch.setChecked(true);
+        }
+
+
+
+        inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(mIsServiceRunning) {
+                    locationService.filterIndoors(isChecked);
+                    Log.d(TAG, "onCheckedChanged: in " + isChecked);
+                }
+            }
+        });
+
+        outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(mIsServiceRunning) {
+                    locationService.filterOutdoors(isChecked);
+                    Log.d(TAG, "onCheckedChanged: out " + isChecked);
+                }
+            }
+        });
+
+
         isTimeToUpdate = true;
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
                 new IntentFilter("locationEvent"));
     }
 
+
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive: received");
             if(isTimeToUpdate) {
+                Log.d(TAG, "onReceive: updated");
                 mCurrentLocation = intent.getParcelableExtra("latlng");
                 WeatherTaskParams weatherTaskParams = new WeatherTaskParams(mCurrentLocation.latitude, mCurrentLocation.longitude);
                 new WeatherTask().execute(weatherTaskParams);
@@ -73,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
-    private void updateWeatherUI(String place, String temp, String weatherDesc) {
+    private void updateWeatherUI(String place, String temp, String weatherDesc, String weatherMain) {
         TextView locationTV = findViewById(R.id.locationText);
         TextView temperatureTV = findViewById(R.id.tempText);
         TextView weatherTV = findViewById(R.id.weatherText);
@@ -83,43 +128,20 @@ public class MainActivity extends AppCompatActivity {
         weatherTV.setText(weatherDesc);
     }
 
-    // requires the service to be up and running
-    private void switchButtonOperations(){
-        Switch inSwitch = findViewById(R.id.switchIn);
-        Switch outSwitch = findViewById(R.id.switchOut);
-
-        inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                locationService.filterIndoors(isChecked);
-            }
-        });
-
-        outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                locationService.filterOutdoors(isChecked);
-            }
-        });
-
-        // set the switch buttons to initially be true
-        inSwitch.setChecked(true);
-        outSwitch.setChecked(true);
-    }
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         Log.d(TAG, "onSaveInstanceState");
         outState.putBoolean(KEY_SERVICE, mIsServiceRunning);
+        outState.putBoolean(KEY_INSWITCH, inSwitch.isChecked());
+        outState.putBoolean(KEY_OUTSWITCH, outSwitch.isChecked());
         super.onSaveInstanceState(outState);
-
     }
 
     public void openMap(View view) {
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
     }
- 
+
     @Override
     public void onDestroy(){
         unbindService(serviceConnection);
@@ -172,8 +194,6 @@ public class MainActivity extends AppCompatActivity {
     private void startService() {
         Intent intent = new Intent(this, LocationService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
-        mIsServiceRunning = true;
-
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -182,15 +202,16 @@ public class MainActivity extends AppCompatActivity {
                                        IBinder service) {
             locationService = ((LocationService.LocalBinder) service).getService();
             Log.d(TAG, "onServiceConnected");
-
-            // the buttons require the service to be connected
-            switchButtonOperations();
+            mIsServiceRunning = true;
+            locationService.filterOutdoors(true);
+            locationService.filterIndoors(true);
 
         }
 
         @Override
         public void onServiceDisconnected(ComponentName className) {
             locationService = null;
+            mIsServiceRunning = false;
             Log.d(TAG, "onServiceDisconnected" );
         }
     };
@@ -225,10 +246,11 @@ public class MainActivity extends AppCompatActivity {
                 JSONArray descArr = jsonObject.getJSONArray("weather");
                 JSONObject descObj = descArr.getJSONObject(0);
                 String weatherDesc = descObj.getString("description");
+                String weatherMain = descObj.getString("main");
 
                 Log.d(TAG, "parseResult: place " + place + temp + weatherDesc);
 
-                updateWeatherUI(place, temp, weatherDesc);
+                updateWeatherUI(place, temp, weatherDesc, weatherMain);
             } catch (JSONException e) {
                 e.printStackTrace();
             }

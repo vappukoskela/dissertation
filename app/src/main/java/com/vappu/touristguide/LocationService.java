@@ -77,7 +77,7 @@ public class LocationService extends Service {
     private ArrayList<Integer> mOutdoorsList;
     private ArrayList<LatLng> mLatLngList;
 
-    private String[] mPreviousArray = new String[2];
+    private String[] mPreviousArray = new String[5];
 
 
     @Override
@@ -128,6 +128,10 @@ public class LocationService extends Service {
                         checkLikelyPlaces(location);
                         LatLng latlng = new LatLng(location.getLatitude(), location.getLongitude());
                         setmCurrentLocation(latlng);
+
+                        Intent intent = new Intent("locationEvent");
+                        intent.putExtra("latlng", latlng);
+                        LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
                     }
                 }
             }
@@ -150,7 +154,7 @@ public class LocationService extends Service {
     // modify the list containing categories for filtering
     public void filterIndoors(boolean isIndoorChecked) {
         if (isIndoorChecked) {
-            mIndoorsList.add(Place.TYPE_ART_GALLERY);
+            //mIndoorsList.add(Place.TYPE_ART_GALLERY);
             mIndoorsList.add(Place.TYPE_MUSEUM);
             mIndoorsList.add(Place.TYPE_LIBRARY);
         }
@@ -170,6 +174,7 @@ public class LocationService extends Service {
             mOutdoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
             mOutdoorsList.add(Place.TYPE_CITY_HALL);
             mOutdoorsList.add(Place.TYPE_EMBASSY);
+            mOutdoorsList.add(Place.TYPE_NATURAL_FEATURE);
         } else { mOutdoorsList.clear(); }
         updateFilters();
     }
@@ -198,9 +203,6 @@ public class LocationService extends Service {
                 public void onComplete(@NonNull Task<PlaceLikelihoodBufferResponse> task) {
                     if (task.isSuccessful()) {
                         PlaceLikelihoodBufferResponse likelyPlaces = task.getResult();
-
-//                        mLatLngList.clear();
-
                         for (PlaceLikelihood placeLikelihood : likelyPlaces) {
                             Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                     placeLikelihood.getPlace().getName(),
@@ -222,16 +224,14 @@ public class LocationService extends Service {
                             }
 
                             if(!typeList.isEmpty()) {
-                                LatLng latLng = placeLikelihood.getPlace().getLatLng();
-//                                mLatLngList.add(latLng);
-                                Intent intent = new Intent("locationEvent");
+                                Intent intent = new Intent("placeEvent");
                                 String placeID = placeLikelihood.getPlace().getId();
                                 intent.putExtra("placeID", placeID);
                                 intent.putExtra("latlng", placeLikelihood.getPlace().getLatLng());
                                 intent.putExtra("name", placeLikelihood.getPlace().getName());
                                 Log.d(TAG, "onComplete: placeID " + placeID);
                                 LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
-
+                                Log.d(TAG, "onComplete: BRROADCAST");
 
                                 if (!isDuplicate && placeLikelihood.getLikelihood() > PLACELIKELIHOODTHRESHOLD) {
 
@@ -241,7 +241,7 @@ public class LocationService extends Service {
                                     // shift to the right
                                     System.arraycopy(mPreviousArray, 0, mPreviousArray, 1, mPreviousArray.length - 1);
                                     mPreviousArray[0] = id;
-                                    Log.d(TAG, "onComplete: " + Arrays.toString(mPreviousArray));
+                                    Log.d(TAG, "PREVIOUSARRAY: " + Arrays.toString(mPreviousArray));
                                     break;
                                 }
                             }
@@ -253,8 +253,6 @@ public class LocationService extends Service {
             });
 
         Log.d(TAG, "checkLikelyPlaces: END");
-
-
     }
 
     private void createNotificationChannel(int importance, CharSequence name, String description, String channelID) {

@@ -92,16 +92,22 @@ public class MapActivity extends AppCompatActivity
         bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
-                new IntentFilter("locationEvent"));
-
+                new IntentFilter("placeEvent"));
 
         // Retrieve location and camera position from saved instance state.
         if (savedInstanceState != null) {
             mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    new LatLng(mLastKnownLocation.getLatitude(),
+                            mLastKnownLocation.getLongitude()), mMap.getCameraPosition().zoom));
         }
 
         mGeoDataClient = Places.getGeoDataClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         mLocationCallBack = new LocationCallback() {
             @Override
@@ -118,10 +124,6 @@ public class MapActivity extends AppCompatActivity
             }
         };
 
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(1000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         // Build the map.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -139,7 +141,6 @@ public class MapActivity extends AppCompatActivity
     protected void onDestroy(){
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
 
         if ( serviceConnection != null ){
@@ -158,7 +159,6 @@ public class MapActivity extends AppCompatActivity
 
             Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(name));
             mMarkers.put(marker, placeID);
-
         }
     };
 
@@ -257,6 +257,12 @@ public class MapActivity extends AppCompatActivity
             if (mLocationPermissionGranted) {
                 mMap.setMyLocationEnabled(true);
                 mMap.getUiSettings().setMyLocationButtonEnabled(true);
+                mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                    @Override
+                    public boolean onMyLocationButtonClick() {
+                        return false;
+                    }
+                });
             } else {
                 mMap.setMyLocationEnabled(false);
                 mMap.getUiSettings().setMyLocationButtonEnabled(false);
