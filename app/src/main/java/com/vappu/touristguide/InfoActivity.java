@@ -1,10 +1,12 @@
 package com.vappu.touristguide;
 
 import android.annotation.SuppressLint;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -61,6 +63,7 @@ public class InfoActivity extends AppCompatActivity {
             final String placeID = extras.getString("placeID");
             Log.d(TAG, "onCreate: placeID " + placeID);
             final TextView gTextAddress = findViewById(R.id.gTextAddress);
+            final TextView gUrl = findViewById(R.id.websiteUrl);
             mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
                 @Override
                 public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
@@ -75,11 +78,25 @@ public class InfoActivity extends AppCompatActivity {
                             gTextAddress.setText(address);
                         }
 
+                        Uri websiteUri = thisPlace.getWebsiteUri();
+                        if(websiteUri != null) {
+                            gUrl.setText(websiteUri.toString());
+                        }
+
                         TextView title = findViewById(R.id.infoText);
                         title.setText(name);
 
                         FetchTaskParams paramsKey = new FetchTaskParams(poiLatLng.latitude, poiLatLng.longitude, name, placeID);
                         new FetchInfoTask().execute(paramsKey);
+
+                        // Attributions required by Google
+                        TextView attributionsText = (TextView) findViewById(R.id.attributions);
+                        CharSequence thirdPartyAttributions =
+                                places.getAttributions();
+                        if (thirdPartyAttributions == null) {
+                            thirdPartyAttributions = "";
+                        }
+                        attributionsText.setText(Html.fromHtml(thirdPartyAttributions.toString()));
 
                         places.release();
                     }
@@ -118,6 +135,7 @@ public class InfoActivity extends AppCompatActivity {
         String key;
         String name;
         String searchQueryType;
+        String wikiLink;
 
         // JSON passed as a String, parse it and return the content of the desired identifier
         private String parseJSON(String jsonString, String key) {
@@ -132,7 +150,13 @@ public class InfoActivity extends AppCompatActivity {
                 JSONArray jsonArray = null;
                 if(key.equals("extract")) {
                     result = jsonObject.get("extract").toString();
+
+                    JSONObject temp = jsonObject.getJSONObject("content_urls");
+                    Log.d(TAG, "parseJSON: TEMP " + temp);
+
+                    wikiLink = jsonObject.getJSONObject("content_urls").getJSONObject("desktop").getString("page");
                 }
+
                 else {
                     JSONObject queryObject = jsonObject.getJSONObject("query");
 
@@ -156,9 +180,14 @@ public class InfoActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String resultString) {
             super.onPostExecute(resultString);
+
             progressBar.setVisibility(View.INVISIBLE);
             TextView body = findViewById(R.id.contentText);
             body.setText(resultString);
+
+            TextView source = findViewById(R.id.sourceText);
+            String wikiText = "Learn more: " + wikiLink;
+            source.setText(wikiText);
         }
 
         @Override
@@ -241,6 +270,7 @@ public class InfoActivity extends AppCompatActivity {
             String summaryText = "";
 
             if(isFuzzyCorrect(geoQueryResult, name)){
+
                 summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + geoQueryResult), "extract");
             }
             else if(isFuzzyCorrect(searchQueryResult, name)){

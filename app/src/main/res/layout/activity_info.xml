@@ -31,8 +31,18 @@
             android:id="@+id/gTextAddress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textAppearance="@android:style/TextAppearance.Material.Body1"
             android:paddingEnd="20dp"
             android:paddingStart="20dp" />
+
+        <TextView
+            android:id="@+id/websiteUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autoLink="web"
+            android:paddingEnd="20dp"
+            android:paddingStart="20dp"
+            android:textAppearance="@android:style/TextAppearance.Material.Body1" />
 
         <TextView
             android:id="@+id/contentText"
@@ -41,19 +51,20 @@
             android:padding="20dp"
             android:textAppearance="@android:style/TextAppearance.Material.Body1"
             android:textSize="18sp" />
+        <TextView
+            android:id="@+id/sourceText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autoLink="web"
+            android:padding="20dp"
+            android:textAppearance="@android:style/TextAppearance.Material.Body1"
+            android:textSize="16sp" />
 
         <TextView
-            android:id="@+id/historyTitle"
+            android:id="@+id/attributions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="20dp" />
-
-        <TextView
-            android:id="@+id/historyText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="20dp"
-            android:textSize="18sp" />
 
     </LinearLayout>
 
