@@ -144,6 +144,7 @@ public class LocationService extends Service {
             //mIndoorsList.add(Place.TYPE_ART_GALLERY);
             mIndoorsList.add(Place.TYPE_MUSEUM);
             mIndoorsList.add(Place.TYPE_LIBRARY);
+            mIndoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
         }
         else { mIndoorsList.clear(); }
         updateFilters();
@@ -153,12 +154,10 @@ public class LocationService extends Service {
         if(isOutdoorChecked){
             mOutdoorsList.add(Place.TYPE_AMUSEMENT_PARK);
             mOutdoorsList.add(Place.TYPE_ZOO);
-            mOutdoorsList.add(Place.TYPE_MUSEUM);
             mOutdoorsList.add(Place.TYPE_PARK);
             mOutdoorsList.add(Place.TYPE_STADIUM);
             mOutdoorsList.add(Place.TYPE_UNIVERSITY);
             mOutdoorsList.add(Place.TYPE_CEMETERY);
-            mOutdoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
             mOutdoorsList.add(Place.TYPE_CITY_HALL);
             mOutdoorsList.add(Place.TYPE_EMBASSY);
             mOutdoorsList.add(Place.TYPE_NATURAL_FEATURE);
@@ -200,12 +199,7 @@ public class LocationService extends Service {
                             Log.d(TAG, "PlaceTypes originally " + placeLikelihood.getPlace().getPlaceTypes());
                             List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
 
-                            if(likelyPlaces.getCount() < 5) {
-                                if (!typeList.contains(1013) && !typeList.contains(34)) {
-                                    typeList.retainAll(mTypesList);
-                                }
-                            }
-                            else {typeList.retainAll(mTypesList);}
+                            typeList.retainAll(mTypesList);
                             Log.d(TAG, "PlaceTypes after retainall: " + typeList);
 
                             // if the place was in previous 10 places, then do not send notification for it
