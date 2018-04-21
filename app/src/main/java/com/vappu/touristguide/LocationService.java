@@ -11,10 +11,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.media.RingtoneManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -27,17 +27,21 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceDetectionClient;
-import com.google.android.gms.location.places.PlaceLikelihood;
-import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+
+import javax.net.ssl.HttpsURLConnection;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
 import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
@@ -67,7 +71,10 @@ public class LocationService extends Service {
     private ArrayList<Integer> mIndoorsList;
     private ArrayList<Integer> mOutdoorsList;
 
+    private ArrayList<MarkerObject> markerObjectArrayList = new ArrayList<>();
+
     private String[] mPreviousArray = new String[10];
+    private int notificationID = 0;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -182,7 +189,15 @@ public class LocationService extends Service {
     }
 
     private void checkLikelyPlaces(Location location) {
-        Log.d(TAG, "checkLikelyPlaces " + location);
+
+        // check nearby wiki articles
+        WikiTaskParams wikiTaskParams = new WikiTaskParams(location.getLatitude(), location.getLongitude());
+        new FindNearbyWikiTextTask().execute(wikiTaskParams);
+
+
+
+
+    /*    Log.d(TAG, "checkLikelyPlaces " + location);
         @SuppressLint("MissingPermission") Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
             placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
                 @Override
@@ -217,12 +232,12 @@ public class LocationService extends Service {
                                 intent.putExtra("latlng", placeLikelihood.getPlace().getLatLng());
                                 intent.putExtra("name", placeLikelihood.getPlace().getName());
                                 Log.d(TAG, "onComplete: placeID " + placeID);
-                                LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
+                            //    LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
                                 Log.d(TAG, "onComplete: BRROADCAST");
 
                                 if (!isDuplicate) {
                                     Log.d(TAG, "onComplete: Passed, create notification");
-                                    createInfoNotification(placeLikelihood.getPlace());
+                                 //   createInfoNotification(placeLikelihood.getPlace());
 
                                     // shift to the right
                                     System.arraycopy(mPreviousArray, 0, mPreviousArray, 1, mPreviousArray.length - 1);
@@ -237,7 +252,7 @@ public class LocationService extends Service {
                 }
 
             });
-
+*/
         Log.d(TAG, "checkLikelyPlaces: END");
     }
 
@@ -280,30 +295,47 @@ public class LocationService extends Service {
         }
     }
 
-    public void createInfoNotification(Place place){
-        String placeName = (String) place.getName();
-        Intent intent = new Intent(this, InfoActivity.class);
-        intent.putExtra("placeID", place.getId());
+    private boolean isDuplicate(String placeID){
+        for (String previousId : mPreviousArray) {
+            if (placeID.equals(previousId)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        Log.d(TAG, "service createNotification " + placeName + place.getId());
-        Intent notificationIntent = new Intent(intent);
-        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(this,0 , notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification notification = new NotificationCompat.Builder(this, "channelID")
-                .setTicker(("message"))
-                .setSmallIcon(android.R.drawable.ic_menu_report_image)
-                .setContentTitle("Interesting Place Detected")
-                .setContentText(placeName)
-                .setContentIntent(pi)
-                .setPriority(PRIORITY_HIGH)
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                .setAutoCancel(true)
-                .build();
+    private void updateMPreviousArray(String placeID){
+        System.arraycopy(mPreviousArray, 0, mPreviousArray, 1, mPreviousArray.length - 1);
+        mPreviousArray[0] = placeID;
+    }
 
-        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            // create a unique id for the notification
-            notificationManager.notify( 1, notification);
+    public void createInfoNotification(String placeID, LatLng latLng, String title ){
+        // if the place was in previous 10 places, then do not send notification for it
+
+        if(!isDuplicate(placeID)) {
+            Intent intent = new Intent(this, InfoActivity.class);
+            intent.putExtra("wikiID", placeID);
+            intent.putExtra("title", title);
+            Intent notificationIntent = new Intent(intent);
+            notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification notification = new NotificationCompat.Builder(this, "channelID")
+                    .setTicker(("message"))
+                    .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                    .setContentTitle("Interesting Place Detected")
+                    .setContentText(title)
+                    .setContentIntent(pi)
+                    .setPriority(PRIORITY_HIGH)
+                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                    .setAutoCancel(true)
+                    .build();
+
+            notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                // each notification has a unique id to allow multiple notifications on the same channel
+                notificationManager.notify(++notificationID, notification);
+            }
+            updateMPreviousArray(placeID);
         }
     }
 
@@ -342,5 +374,162 @@ public class LocationService extends Service {
         Log.d(TAG, "service onUnbind");
         stopSelf();
         return super.onUnbind(intent);
+    }
+
+    // wrapper class for parameters to be used in the AsyncTask
+    private static class WikiTaskParams {
+        double latitude;
+        double longitude;
+
+        WikiTaskParams(double lat, double lon) {
+            Log.d(TAG, "FetchTaskParams");
+            this.latitude = lat;
+            this.longitude = lon;
+        }
+    }
+
+    // using https://en.wikipedia.org/api/rest_v1/#!/Page_content/get_page_summary_title
+    // to get page summaries from the wikimedia API
+    @SuppressLint("StaticFieldLeak")
+    private class FindNearbyWikiTextTask extends AsyncTask<WikiTaskParams, Integer, String> {
+
+        private double lat;
+        private double lon;
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            for ( int i = 0; i < markerObjectArrayList.size(); i++ ){
+
+                // notify user about a nearby sight
+                if ( markerObjectArrayList.get(i).getDistance() < 100 ){
+                    createInfoNotification(markerObjectArrayList.get(i).getWikiID(),
+                            markerObjectArrayList.get(i).getLatLng(),
+                            markerObjectArrayList.get(i).getTitle());
+                }
+            }
+        }
+
+        private boolean passesFilter(String title){
+            // discard titles with numbers in them, these are often dates
+            // wikipedia's dated titles are often fairly recent events
+            // such as 2011 Anti-cut protest, 2012 Summer Olympics Triathlon etc
+
+            if( title.matches(".*\\d+.*") ){
+                return false;
+            }
+            else { return true; }
+        }
+
+        // JSON passed as a String, parse the content of the desired identifier
+        private String parseJSON(String jsonString) {
+            Log.d(TAG, "parseJSON");
+
+            JSONObject jsonObject;
+            try {
+                markerObjectArrayList.clear();
+
+                jsonObject = new JSONObject(jsonString);
+                JSONArray pagesArray = jsonObject.getJSONObject("query").getJSONArray("geosearch");
+
+                for (int i = 0; i < pagesArray.length(); i++){
+                    JSONObject pageObject = pagesArray.getJSONObject(i);
+                    String pageID = pageObject.getString("pageid");
+                    String title = pageObject.getString("title");
+                    double latitude = pageObject.getDouble("lat");
+                    double longitude = pageObject.getDouble("lon");
+                    double distance = pageObject.getDouble("dist");
+
+                    LatLng latLng = new LatLng(latitude, longitude);
+
+                    Log.d(TAG, "parseJSON: " + pageObject);
+
+                    // add the place to the array list
+                    // places will be in order of distance starting from the nearest
+                    if(passesFilter(title)) {
+
+                        // create the object for the place
+                        MarkerObject markerObject = new MarkerObject();
+                        markerObject.setWikiID(pageID);
+                        markerObject.setLatLng(latLng);
+                        markerObject.setTitle(title);
+                        markerObject.setDistance(distance);
+
+                        // add to the list
+                        markerObjectArrayList.add(markerObject);
+
+                        Intent intent = new Intent("placeEvent");
+                        intent.putExtra("placeID", pageID);
+                        intent.putExtra("latlng", latLng);
+                        intent.putExtra("name", title);
+                        LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
+                    }
+                }
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return "success";
+        }
+
+
+        private String queryApi(String query) {
+            String result = "";
+            try {
+                URL titleEndPoint = new URL(query);
+                HttpsURLConnection conn = (HttpsURLConnection) titleEndPoint.openConnection();
+                conn.setRequestProperty("User-Agent", "tourist-guide");
+                conn.setRequestMethod("GET");
+
+                if (conn.getResponseCode() == 200) {
+                    // everything is fine!
+                    Log.d(TAG, "response code 200");
+                } else {
+                    // error, log it
+                    Log.e(TAG, "response code " + conn.getResponseCode());
+                }
+
+                // Get JSON
+                InputStream inputStream = conn.getInputStream();
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line).append("\n");
+                }
+                bufferedReader.close();
+                Log.d(TAG, "queryApi: " + stringBuilder.toString());
+                result = stringBuilder.toString();
+
+                // close connection!
+                conn.disconnect();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "queryApi: result is " + result);
+            return result;
+        }
+
+        @Override
+        protected String doInBackground(WikiTaskParams... wikiTaskParams) {
+            Log.d(TAG, "doInBackground");
+
+            // fetch coordinates
+            lat = wikiTaskParams[0].latitude;
+            lon = wikiTaskParams[0].longitude;
+
+            String locationQuery = "https://en.wikipedia.org/w/api.php?action=query&format=json&" +
+                    "list=geosearch&gscoord=" +
+                    lat +
+                    "%7C" +
+                    lon +
+                    "&gsradius=500|";
+
+            Log.d(TAG, "doInBackground: locationquery " + locationQuery);
+
+            return parseJSON(queryApi(locationQuery));
+        }
     }
 }

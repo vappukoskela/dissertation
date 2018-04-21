@@ -35,6 +35,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.HashMap;
+
 /**
  * An activity that displays a map showing the place at the device's current location.
  */
@@ -69,6 +71,8 @@ public class MapActivity extends AppCompatActivity
 
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallBack;
+
+    private HashMap<String, Marker> markerHashMap = new HashMap<String, Marker>();
 
     // service
     private LocationService mLocationService;
@@ -155,9 +159,12 @@ public class MapActivity extends AppCompatActivity
     };
 
     private void addMarker(String title, LatLng pos, String id){
-        Marker marker;
-        marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
-        marker.setTag(id);
+        if ( !markerHashMap.containsKey(id)) {
+            Marker marker;
+            marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
+            marker.setTag(id);
+            markerHashMap.put(id, marker);
+        }
     }
 
     @Override
@@ -179,9 +186,11 @@ public class MapActivity extends AppCompatActivity
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
-
                 Intent intent = new Intent(MapActivity.this, InfoActivity.class);
-                intent.putExtra("placeID", marker.getTag().toString());
+                intent.putExtra("wikiID", marker.getTag().toString());
+
+                String title = markerHashMap.get(marker.getTag()).getTitle();
+                intent.putExtra("title", title);
 
                 startActivity(intent);
             }
