@@ -45,14 +45,12 @@ public class MainActivity extends AppCompatActivity {
 
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
-    private String KEY_INSWITCH = "inswitch";
     private String KEY_OUTSWITCH = "outswitch";
 
     private boolean mIsServiceRunning;
     private LocationService locationService;
     private LatLng mCurrentLocation;
     private boolean isTimeToUpdate;
-    private Switch inSwitch;
     private Switch outSwitch;
 
 
@@ -63,28 +61,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkingPermissions();
 
-        inSwitch = findViewById(R.id.switchIn);
         outSwitch = findViewById(R.id.switchOut);
         if(savedInstanceState != null){
             // restore state
             mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
-            inSwitch.setChecked(savedInstanceState.getBoolean(KEY_INSWITCH));
             outSwitch.setChecked(savedInstanceState.getBoolean(KEY_OUTSWITCH));
         }
         else {
-            inSwitch.setChecked(true);
             outSwitch.setChecked(true);
         }
 
-        inSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(mIsServiceRunning) {
-                    locationService.filterIndoors(isChecked);
-                    Log.d(TAG, "onCheckedChanged: in " + isChecked);
-                }
-            }
-        });
 
         outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -143,7 +129,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         Log.d(TAG, "onSaveInstanceState");
         outState.putBoolean(KEY_SERVICE, mIsServiceRunning);
-        outState.putBoolean(KEY_INSWITCH, inSwitch.isChecked());
         outState.putBoolean(KEY_OUTSWITCH, outSwitch.isChecked());
         super.onSaveInstanceState(outState);
     }
@@ -215,7 +200,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onServiceConnected");
             mIsServiceRunning = true;
             locationService.filterOutdoors(true);
-            locationService.filterIndoors(true);
 
         }
 

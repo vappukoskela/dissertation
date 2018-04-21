@@ -149,12 +149,11 @@ public class MapActivity extends AppCompatActivity
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String placeID = intent.getStringExtra("placeID");
+            String wikiID = intent.getStringExtra("wikiID");
             LatLng latLng = intent.getParcelableExtra("latlng");
             String name = intent.getStringExtra("name");
-            Log.d(TAG, "onReceive: placeID " + placeID);
-
-            addMarker(name, latLng, placeID);
+            Log.d(TAG, "onReceive: wikiID " + wikiID);
+            addMarker(name, latLng, wikiID);
         }
     };
 

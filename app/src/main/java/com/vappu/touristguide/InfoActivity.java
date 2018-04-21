@@ -3,6 +3,7 @@ package com.vappu.touristguide;
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -13,8 +14,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
-import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,7 +33,6 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class InfoActivity extends AppCompatActivity {
 
-    LatLng poiLatLng;
     GeoDataClient mGeoDataClient;
 
     // Tag for debug purposes
@@ -50,6 +53,7 @@ public class InfoActivity extends AppCompatActivity {
         // check if null
         if (extras != null) {
             String wikiId = extras.getString("wikiID");
+            String placeID = extras.getString("placeID");
             String title = extras.getString("title");
 
             TextView titleView = findViewById(R.id.infoText);
@@ -57,6 +61,30 @@ public class InfoActivity extends AppCompatActivity {
 
             params[0] = title;
             new FetchInfoTask().execute(params);
+
+            if (placeID != null) {
+                mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
+                        if (task.isSuccessful()) {
+                            PlaceBufferResponse places = task.getResult();
+                            Place place = places.get(0);
+                            String address = place.getAddress().toString();
+                            String website = place.getWebsiteUri().toString();
+
+                            TextView addressText = findViewById(R.id.gTextAddress);
+                            TextView webText = findViewById(R.id.websiteUrl);
+
+                            addressText.setText(address);
+                            webText.setText(website);
+
+                            places.release();
+                        } else {
+                            Log.e(TAG, "Place not found.");
+                        }
+                    }
+                });
+            }
 
         } else {
             Log.d(TAG, "onCreate: Nothing passed in extras!");
