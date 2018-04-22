@@ -31,6 +31,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -49,6 +50,8 @@ public class MapActivity extends AppCompatActivity
 
     // define TAG for logs
     private static final String TAG = MapActivity.class.getSimpleName();
+    private static final int TYPE_PLACE = 1;
+    private static final int TYPE_WIKI = 0;
 
     private GoogleMap mMap;
 
@@ -150,17 +153,33 @@ public class MapActivity extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent) {
             String wikiID = intent.getStringExtra("wikiID");
+            String placeID = intent.getStringExtra("placeID");
             LatLng latLng = intent.getParcelableExtra("latlng");
             String name = intent.getStringExtra("name");
-            Log.d(TAG, "onReceive: wikiID " + wikiID);
-            addMarker(name, latLng, wikiID);
+
+            String id = "";
+            int type = 0;
+            if (wikiID != null ) {
+                id = wikiID;
+                type = TYPE_WIKI;
+            }
+            else if (placeID != null ) {
+                id = placeID;
+                type = TYPE_PLACE;
+            }
+            addMarker(name, latLng, id, type);
         }
     };
 
-    private void addMarker(String title, LatLng pos, String id){
+    private void addMarker(String title, LatLng pos, String id, int type){
         if ( !markerHashMap.containsKey(id)) {
             Marker marker;
-            marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
+            if( type == TYPE_WIKI) {
+                marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));
+            }
+            else {
+                marker = mMap.addMarker(new MarkerOptions().position(pos).title(title).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)));
+            }
             marker.setTag(id);
             markerHashMap.put(id, marker);
         }
@@ -186,7 +205,7 @@ public class MapActivity extends AppCompatActivity
             @Override
             public void onInfoWindowClick(Marker marker) {
                 Intent intent = new Intent(MapActivity.this, InfoActivity.class);
-                intent.putExtra("wikiID", marker.getTag().toString());
+                intent.putExtra("ID", marker.getTag().toString());
 
                 String title = markerHashMap.get(marker.getTag()).getTitle();
                 intent.putExtra("title", title);
@@ -194,6 +213,7 @@ public class MapActivity extends AppCompatActivity
                 startActivity(intent);
             }
         });
+
         // Prompt the user for permission.
         getLocationPermission();
 

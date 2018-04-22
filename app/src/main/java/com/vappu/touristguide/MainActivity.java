@@ -45,13 +45,13 @@ public class MainActivity extends AppCompatActivity {
 
     // used for starting the location service as well as keeping on top of when it is running
     private String KEY_SERVICE = "service";
-    private String KEY_OUTSWITCH = "outswitch";
+    private String KEY_FOODSWITCH = "foodswitch";
 
     private boolean mIsServiceRunning;
     private LocationService locationService;
     private LatLng mCurrentLocation;
     private boolean isTimeToUpdate;
-    private Switch outSwitch;
+    private Switch foodSwitch;
 
 
     @Override
@@ -61,23 +61,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkingPermissions();
 
-        outSwitch = findViewById(R.id.switchOut);
+        foodSwitch = findViewById(R.id.switchFood);
+
         if(savedInstanceState != null){
             // restore state
             mIsServiceRunning = savedInstanceState.getBoolean(KEY_SERVICE);
-            outSwitch.setChecked(savedInstanceState.getBoolean(KEY_OUTSWITCH));
+            foodSwitch.setChecked(savedInstanceState.getBoolean(KEY_FOODSWITCH));
         }
         else {
-            outSwitch.setChecked(true);
+            foodSwitch.setChecked(true);
         }
 
 
-        outSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        foodSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(mIsServiceRunning) {
-                    locationService.filterOutdoors(isChecked);
-                    Log.d(TAG, "onCheckedChanged: out " + isChecked);
+                    locationService.filterFood(isChecked);
+                    Log.d(TAG, "onCheckedChanged: food " + isChecked);
                 }
             }
         });
@@ -118,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
         // if true, it is raining, there is a hurricane, snowing etc.
         // stay indoors!
         if (weatherID < 800 || weatherID >= 900){
-            outSwitch.setChecked(false);
             badWeather.setText(R.string.badWeatherString);
         }
         Log.d(TAG, "updateWeatherUI: " + weatherID);
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         Log.d(TAG, "onSaveInstanceState");
         outState.putBoolean(KEY_SERVICE, mIsServiceRunning);
-        outState.putBoolean(KEY_OUTSWITCH, outSwitch.isChecked());
+        outState.putBoolean(KEY_FOODSWITCH, foodSwitch.isChecked());
         super.onSaveInstanceState(outState);
     }
 
@@ -199,8 +199,7 @@ public class MainActivity extends AppCompatActivity {
             locationService = ((LocationService.LocalBinder) service).getService();
             Log.d(TAG, "onServiceConnected");
             mIsServiceRunning = true;
-            locationService.filterOutdoors(true);
-
+            locationService.filterFood(true);
         }
 
         @Override

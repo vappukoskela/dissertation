@@ -5,20 +5,12 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class MarkerObject {
 
+
     private LatLng latLng;
     private String title;
     private String wikiID;
     private String placeID;
     private double distance;
-    private boolean isVisible;
-
-    public boolean isVisible() {
-        return isVisible;
-    }
-
-    public void setVisible(boolean visible) {
-        isVisible = visible;
-    }
 
     public double getDistance() {
         return distance;

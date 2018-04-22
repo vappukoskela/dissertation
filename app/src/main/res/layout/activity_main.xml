@@ -56,7 +56,7 @@
                 android:id="@+id/locatingText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Locating... Please make sure Location services are enabled"
+                android:text="@string/progress_spinner_text"
                 android:layout_weight="1"
                 android:layout_gravity="center"
                 tools:visibility="gone"
@@ -92,14 +92,14 @@
             </LinearLayout>
 
             <Switch
-                android:id="@+id/switchOut"
+                android:id="@+id/switchFood"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingBottom="20dp"
                 android:paddingTop="20dp"
                 android:textAllCaps="true"
                 android:textColor="@color/colorTextLight"
-                android:text="Outdoor Activities" />
+                android:text="Food" />
 
             <TextView
                 android:id="@+id/badWeatherText"

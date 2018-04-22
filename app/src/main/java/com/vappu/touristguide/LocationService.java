@@ -26,9 +26,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBufferResponse;
@@ -47,12 +45,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
-
-import me.xdrop.fuzzywuzzy.FuzzySearch;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_HIGH;
 import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
@@ -78,16 +73,13 @@ public class LocationService extends Service {
 
     private NotificationManager notificationManager;
     private ArrayList<Integer> mTypesList;
-    private ArrayList<Integer> mIndoorsList;
-    private ArrayList<Integer> mOutdoorsList;
 
-    private HashMap<String, String> placeHashMap;
 
     private ArrayList<MarkerObject> markerObjectArrayList = new ArrayList<>();
 
     private String[] mPreviousArray = new String[10];
     private int notificationID = 0;
-    private GeoDataClient mGeoDataClient;
+    private ArrayList<Integer> mFoodList;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -100,21 +92,7 @@ public class LocationService extends Service {
         Log.d(TAG, "onCreate");
 
         mTypesList = new ArrayList<>();
-        mIndoorsList = new ArrayList<>();
-        mOutdoorsList = new ArrayList<>();
-        placeHashMap = new HashMap<String, String>();
-
-        // always feature indoors places
-        mIndoorsList.add(Place.TYPE_ART_GALLERY);
-        mIndoorsList.add(Place.TYPE_MUSEUM);
-        mIndoorsList.add(Place.TYPE_LIBRARY);
-        mIndoorsList.add(Place.TYPE_PLACE_OF_WORSHIP);
-        mIndoorsList.add(Place.TYPE_ESTABLISHMENT);
-        mIndoorsList.add(Place.TYPE_RESTAURANT);
-        mIndoorsList.add(Place.TYPE_MOVIE_THEATER);
-        mIndoorsList.add(Place.TYPE_CAFE);
-        mIndoorsList.add(Place.TYPE_BAR);
-
+        mFoodList = new ArrayList<>();
 
         updateFilters();
 
@@ -140,7 +118,6 @@ public class LocationService extends Service {
 
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        mGeoDataClient = Places.getGeoDataClient(this, null);
 
         mLocationCallBack = new LocationCallback() {
             @Override
@@ -161,7 +138,7 @@ public class LocationService extends Service {
 
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(20000);
-        mLocationRequest.setFastestInterval(10000);
+        mLocationRequest.setFastestInterval(2000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         startLocationUpdates();
@@ -169,23 +146,17 @@ public class LocationService extends Service {
 
     private void updateFilters() {
         mTypesList.clear();
-        mTypesList.addAll(mOutdoorsList);
-        mTypesList.addAll(mIndoorsList);
+        mTypesList.addAll(mFoodList);
     }
 
-    public void filterOutdoors(boolean isOutdoorChecked) {
-        if (isOutdoorChecked) {
-            mOutdoorsList.add(Place.TYPE_AMUSEMENT_PARK);
-            mOutdoorsList.add(Place.TYPE_ZOO);
-            mOutdoorsList.add(Place.TYPE_PARK);
-            mOutdoorsList.add(Place.TYPE_STADIUM);
-            mOutdoorsList.add(Place.TYPE_UNIVERSITY);
-            mOutdoorsList.add(Place.TYPE_CEMETERY);
-            mOutdoorsList.add(Place.TYPE_CITY_HALL);
-            mOutdoorsList.add(Place.TYPE_EMBASSY);
-            mOutdoorsList.add(Place.TYPE_NATURAL_FEATURE);
+
+    public void filterFood(boolean isChecked) {
+        if (isChecked) {
+            mFoodList.add(Place.TYPE_BAR);
+            mFoodList.add(Place.TYPE_CAFE);
+            mFoodList.add(Place.TYPE_RESTAURANT);
         } else {
-            mOutdoorsList.clear();
+            mFoodList.clear();
         }
         updateFilters();
     }
@@ -207,8 +178,6 @@ public class LocationService extends Service {
     }
 
     private void checkLikelyPlaces(Location location) {
-        placeHashMap.clear();
-
         @SuppressLint("MissingPermission") Task<PlaceLikelihoodBufferResponse> placeResult = mPlaceDetectionClient.getCurrentPlace(null);
         placeResult.addOnCompleteListener(new OnCompleteListener<PlaceLikelihoodBufferResponse>() {
             @Override
@@ -219,8 +188,14 @@ public class LocationService extends Service {
                         Log.i(TAG, String.format("Place '%s' has likelihood: %g",
                                 placeLikelihood.getPlace().getName(),
                                 placeLikelihood.getLikelihood()));
-                        if(placeLikelihood.getLikelihood() > 0){
-                            placeHashMap.put(placeLikelihood.getPlace().getId(), placeLikelihood.getPlace().getName().toString());
+
+                        List<Integer> typeList = placeLikelihood.getPlace().getPlaceTypes();
+                        typeList.retainAll(mTypesList);
+                        if (!typeList.isEmpty()){
+                            createMarkerObject(null, placeLikelihood.getPlace().getId(),
+                                    placeLikelihood.getPlace().getLatLng(),
+                                    placeLikelihood.getPlace().getName().toString(),
+                                    0.0);
                         }
                     }
                     likelyPlaces.release();
@@ -288,12 +263,12 @@ public class LocationService extends Service {
         mPreviousArray[0] = placeID;
     }
 
-    public void createInfoNotification(String placeID, LatLng latLng, String title) {
+    public void createInfoNotification(String placeID, String title) {
         // if the place was in previous 10 places, then do not send notification for it
 
         if (!isDuplicate(placeID)) {
             Intent intent = new Intent(this, InfoActivity.class);
-            intent.putExtra("wikiID", placeID);
+            intent.putExtra("ID", placeID);
             intent.putExtra("title", title);
             Intent notificationIntent = new Intent(intent);
             notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -316,6 +291,28 @@ public class LocationService extends Service {
             }
             updateMPreviousArray(placeID);
         }
+    }
+
+    private MarkerObject createMarkerObject(String pageID, String placeID, LatLng latLng, String title, double distance){
+        // create the object for the place
+        MarkerObject markerObject = new MarkerObject();
+        if (pageID!= null) {
+            markerObject.setWikiID(pageID);
+        }
+        else if( placeID != null ){
+            markerObject.setPlaceID(placeID);
+        }
+        markerObject.setLatLng(latLng);
+        markerObject.setTitle(title);
+        markerObject.setDistance(distance);
+
+        Intent intent = new Intent("placeEvent");
+        intent.putExtra("wikiID", pageID);
+        intent.putExtra("placeID", placeID);
+        intent.putExtra("latlng", latLng);
+        intent.putExtra("name", title);
+        LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
+        return markerObject;
     }
 
     @Override
@@ -375,24 +372,6 @@ public class LocationService extends Service {
         private double lat;
         private double lon;
 
-        // use FuzzyWuzzy to figure out if the place is a match
-        private boolean isFuzzyCorrect(String wTitle, String gPlaceName) {
-                        int fuz = FuzzySearch.weightedRatio(wTitle, gPlaceName);
-                        Log.d(TAG, "isFuzzyCorrect: " + fuz + wTitle + gPlaceName);
-                        return fuz > 90;
-        }
-
-        private String findMatchingPlace( String title) {
-            String placeID = null;
-            for ( String key : placeHashMap.keySet()) {
-                Log.d(TAG, "findMatchingPlace: " + placeHashMap.get(key));
-                if(isFuzzyCorrect(title, placeHashMap.get(key))){
-                    placeID = key;
-                }
-            }
-            return placeID;
-        }
-
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
@@ -401,7 +380,6 @@ public class LocationService extends Service {
                 // notify user about a nearby sight
                 if ( markerObjectArrayList.get(i).getDistance() < 100 ){
                     createInfoNotification(markerObjectArrayList.get(i).getWikiID(),
-                            markerObjectArrayList.get(i).getLatLng(),
                             markerObjectArrayList.get(i).getTitle());
                 }
             }
@@ -441,41 +419,8 @@ public class LocationService extends Service {
 
                     Log.d(TAG, "parseJSON: " + pageObject);
 
-                    // add the place to the array list
-                    // places will be in order of distance starting from the nearest
                     if(passesFilter(title)) {
-
-                        final String placeID = findMatchingPlace(title);
-
-                        if (placeID != null){
-                            mGeoDataClient.getPlaceById(placeID).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
-                               @Override
-                               public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
-                                   if (task.isSuccessful()) {
-                                       PlaceBufferResponse places = task.getResult();
-                                       Place place = places.get(0);
-
-                                       List<Integer> typeList = place.getPlaceTypes();
-                                       typeList.retainAll(mTypesList);
-
-                                       if(!typeList.isEmpty()){
-                                           createMarkerObject(pageID,placeID,latLng,title,distance);
-                                       }
-                                       else {
-                                           Log.d(TAG, "onComplete: Place was found, matched, but does not fit filters");
-                                       }
-                                       places.release();
-                                   }
-
-                               }
-                            });
-                        }
-                        else {
-                            // if place could not be found and if outdoors places are allowed, show marker
-                            if (!mOutdoorsList.isEmpty()){
-                                createMarkerObject(pageID,null,latLng,title,distance);
-                            }
-                        }
+                        markerObjectArrayList.add(createMarkerObject(pageID, null, latLng,title,distance));
                     }
                 }
             }
@@ -483,27 +428,6 @@ public class LocationService extends Service {
                 e.printStackTrace();
             }
             return "success";
-        }
-
-        private void createMarkerObject(String pageID, String placeID, LatLng latLng, String title, double distance){
-            // create the object for the place
-            MarkerObject markerObject = new MarkerObject();
-            markerObject.setWikiID(pageID);
-            markerObject.setLatLng(latLng);
-            markerObject.setTitle(title);
-            markerObject.setDistance(distance);
-
-            if (placeID != null) {
-                markerObject.setPlaceID(placeID);
-            }
-            // add to the list
-            markerObjectArrayList.add(markerObject);
-
-            Intent intent = new Intent("placeEvent");
-            intent.putExtra("wikiID", pageID);
-            intent.putExtra("latlng", latLng);
-            intent.putExtra("name", title);
-            LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(intent);
         }
 
 
@@ -557,7 +481,7 @@ public class LocationService extends Service {
             String locationQuery = "https://en.wikipedia.org/w/api.php?action=query&format=json&" +
                     "list=geosearch&gscoord=" +
                     lat +
-                    "%7C" +
+                    "|" +
                     lon +
                     "&gsradius=500|";
 

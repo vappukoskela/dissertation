@@ -11,6 +11,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.places.GeoDataClient;
@@ -52,8 +53,7 @@ public class InfoActivity extends AppCompatActivity {
 
         // check if null
         if (extras != null) {
-            String wikiId = extras.getString("wikiID");
-            String placeID = extras.getString("placeID");
+            final String placeID = extras.getString("ID");
             String title = extras.getString("title");
 
             TextView titleView = findViewById(R.id.infoText);
@@ -68,19 +68,28 @@ public class InfoActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
                         if (task.isSuccessful()) {
                             PlaceBufferResponse places = task.getResult();
-                            Place place = places.get(0);
-                            String address = place.getAddress().toString();
-                            String website = place.getWebsiteUri().toString();
+                            if (places.getCount() > 0) {
+                                Place place = places.get(0);
+                                String address = place.getAddress().toString();
+                                String website = place.getWebsiteUri().toString();
 
-                            TextView addressText = findViewById(R.id.gTextAddress);
-                            TextView webText = findViewById(R.id.websiteUrl);
+                                float rating = place.getRating();
+                                System.out.println(rating + "RATING");
 
-                            addressText.setText(address);
-                            webText.setText(website);
+                                TextView addressText = findViewById(R.id.gTextAddress);
+                                TextView webText = findViewById(R.id.websiteUrl);
+                                RatingBar ratingBar = findViewById(R.id.ratingBar);
 
-                            places.release();
-                        } else {
-                            Log.e(TAG, "Place not found.");
+                                addressText.setVisibility(View.VISIBLE);
+                                webText.setVisibility(View.VISIBLE);
+                                ratingBar.setVisibility(View.VISIBLE);
+
+                                addressText.setText(address);
+                                webText.setText(website);
+                                ratingBar.setRating(rating);
+
+                                places.release();
+                            }
                         }
                     }
                 });
@@ -103,6 +112,9 @@ public class InfoActivity extends AppCompatActivity {
         private String parseJSON(String jsonString) {
             Log.d(TAG, "parseJSON");
             String result = "";
+            if( jsonString == "not found"){
+                return result;
+            }
             JSONObject jsonObject;
             try {
                 jsonObject = new JSONObject(jsonString);
@@ -119,7 +131,7 @@ public class InfoActivity extends AppCompatActivity {
         protected void onPostExecute(String resultString) {
             super.onPostExecute(resultString);
 
-            progressBar.setVisibility(View.INVISIBLE);
+            progressBar.setVisibility(View.GONE);
             TextView body = findViewById(R.id.contentText);
             body.setText(resultString);
 
@@ -145,6 +157,7 @@ public class InfoActivity extends AppCompatActivity {
                 } else {
                     // error, log it
                     Log.e(TAG, "response code " + conn.getResponseCode());
+                    conn.disconnect();
                 }
 
                 // Get JSON
@@ -165,7 +178,8 @@ public class InfoActivity extends AppCompatActivity {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                return "Unable to connect. Please check your connection";
+
+                return "not found";
             }
             Log.d(TAG, "queryApi: result is " + result);
             return result;
