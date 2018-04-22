@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void openMap(View view) {
         Intent intent = new Intent(this, MapActivity.class);
+        intent.putExtra("location", mCurrentLocation);
         startActivity(intent);
     }
 

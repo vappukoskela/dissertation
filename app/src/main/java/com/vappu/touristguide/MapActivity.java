@@ -58,9 +58,9 @@ public class MapActivity extends AppCompatActivity
     // The entry point to the Fused Location Provider.
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
-    // define default location
+    // define default location. This will be used before mapactivity can locate itself
     // default location is lat 52.949591, long -1.154830, Nottingham Castle
-    private final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
+    private LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
     private static final int DEFAULT_ZOOM = 15;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean mLocationPermissionGranted;
@@ -88,6 +88,11 @@ public class MapActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            mDefaultLocation = extras.getParcelable("location");
+        }
+
         // bind to service
         bindService(new Intent(MapActivity.this, LocationService.class), serviceConnection, Context.BIND_AUTO_CREATE);
 
@@ -105,8 +110,8 @@ public class MapActivity extends AppCompatActivity
         GeoDataClient geoDataClient = Places.getGeoDataClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setInterval(100);
+        mLocationRequest.setFastestInterval(10);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         mLocationCallBack = new LocationCallback() {

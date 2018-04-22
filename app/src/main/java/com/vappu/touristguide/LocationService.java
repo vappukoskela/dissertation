@@ -78,7 +78,6 @@ public class LocationService extends Service {
     private ArrayList<MarkerObject> markerObjectArrayList = new ArrayList<>();
 
     private String[] mPreviousArray = new String[10];
-    private int notificationID = 0;
     private ArrayList<Integer> mFoodList;
 
     @Override
@@ -287,7 +286,7 @@ public class LocationService extends Service {
             notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (notificationManager != null) {
                 // each notification has a unique id to allow multiple notifications on the same channel
-                notificationManager.notify(++notificationID, notification);
+                notificationManager.notify(1, notification);
             }
             updateMPreviousArray(placeID);
         }
