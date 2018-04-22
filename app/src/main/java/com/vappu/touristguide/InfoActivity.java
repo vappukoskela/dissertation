@@ -70,23 +70,24 @@ public class InfoActivity extends AppCompatActivity {
                             PlaceBufferResponse places = task.getResult();
                             if (places.getCount() > 0) {
                                 Place place = places.get(0);
-                                String address = place.getAddress().toString();
-                                String website = place.getWebsiteUri().toString();
-
-                                float rating = place.getRating();
-                                System.out.println(rating + "RATING");
-
-                                TextView addressText = findViewById(R.id.gTextAddress);
-                                TextView webText = findViewById(R.id.websiteUrl);
-                                RatingBar ratingBar = findViewById(R.id.ratingBar);
-
-                                addressText.setVisibility(View.VISIBLE);
-                                webText.setVisibility(View.VISIBLE);
-                                ratingBar.setVisibility(View.VISIBLE);
-
-                                addressText.setText(address);
-                                webText.setText(website);
-                                ratingBar.setRating(rating);
+                                if( place.getAddress() != null ) {
+                                    String address = place.getAddress().toString();
+                                    TextView addressText = findViewById(R.id.gTextAddress);
+                                    addressText.setVisibility(View.VISIBLE);
+                                    addressText.setText(address);
+                                }
+                                if( place.getWebsiteUri() != null ) {
+                                    String website = place.getWebsiteUri().toString();
+                                    TextView webText = findViewById(R.id.websiteUrl);
+                                    webText.setVisibility(View.VISIBLE);
+                                    webText.setText(website);
+                                }
+                                if(  place.getRating() != 0.0 ) {
+                                    float rating = place.getRating();
+                                    RatingBar ratingBar = findViewById(R.id.ratingBar);
+                                    ratingBar.setVisibility(View.VISIBLE);
+                                    ratingBar.setRating(rating);
+                                }
 
                                 places.release();
                             }
