@@ -73,8 +73,6 @@ public class LocationService extends Service {
 
     private NotificationManager notificationManager;
     private ArrayList<Integer> mTypesList;
-
-
     private ArrayList<MarkerObject> markerObjectArrayList = new ArrayList<>();
 
     private String[] mPreviousArray = new String[10];

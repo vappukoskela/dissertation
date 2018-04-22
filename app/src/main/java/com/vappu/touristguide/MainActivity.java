@@ -50,9 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean mIsServiceRunning;
     private LocationService locationService;
     private LatLng mCurrentLocation;
-    private boolean isTimeToUpdate;
     private Switch foodSwitch;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
             foodSwitch.setChecked(true);
         }
 
-
         foodSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -83,8 +80,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        isTimeToUpdate = true;
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
                 new IntentFilter("locationEvent"));
     }
@@ -94,13 +89,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive: received");
-            if(isTimeToUpdate) {
                 Log.d(TAG, "onReceive: updated");
                 mCurrentLocation = intent.getParcelableExtra("latlng");
                 WeatherTaskParams weatherTaskParams = new WeatherTaskParams(mCurrentLocation.latitude, mCurrentLocation.longitude);
                 new WeatherTask().execute(weatherTaskParams);
-                isTimeToUpdate = false;
-            }
         }
     };
 
@@ -145,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
         super.onDestroy();
     }
+
 
     private void checkingPermissions() {
         if (ContextCompat.checkSelfPermission(MainActivity.this,

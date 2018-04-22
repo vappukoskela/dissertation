@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Objects;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -105,37 +106,22 @@ public class InfoActivity extends AppCompatActivity {
     // using https://en.wikipedia.org/api/rest_v1/#!/Page_content/get_page_summary_title
     // to get page summaries from the wikimedia API
     @SuppressLint("StaticFieldLeak")
-    private class FetchInfoTask extends AsyncTask<String, Integer, String> {
+    private class FetchInfoTask extends AsyncTask<String, Integer, String[]> {
 
         ProgressBar progressBar = findViewById(R.id.progressBar3);
 
-        // JSON passed as a String, parse it and return the content of the desired identifier
-        private String parseJSON(String jsonString) {
-            Log.d(TAG, "parseJSON");
-            String result = "";
-            if( jsonString == "not found"){
-                return result;
-            }
-            JSONObject jsonObject;
-            try {
-                jsonObject = new JSONObject(jsonString);
-                result = jsonObject.get("extract").toString();
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            Log.d(TAG, "parseJSON: result " + result);
-            return result;
-        }
-
         @Override
-        protected void onPostExecute(String resultString) {
-            super.onPostExecute(resultString);
+        protected void onPostExecute(String[] resultStringArr) {
+            super.onPostExecute(resultStringArr);
 
             progressBar.setVisibility(View.GONE);
             TextView body = findViewById(R.id.contentText);
-            body.setText(resultString);
-
+            TextView link = findViewById(R.id.sourceText);
+            body.setText(resultStringArr[0]);
+            if(!Objects.equals(resultStringArr[1], "")) {
+                String wikilinkText = "Learn more: " + resultStringArr[1];
+                link.setText(wikilinkText);
+            }
         }
 
         @Override
@@ -188,13 +174,27 @@ public class InfoActivity extends AppCompatActivity {
 
         // fetch
         @Override
-        protected String doInBackground(String... strings) {
+        protected String[] doInBackground(String... strings) {
             Log.d(TAG, "doInBackground");
 
             String title = strings[0];
-            String summaryText = "";
-            summaryText = parseJSON(queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + title));
-            return summaryText;
+            String jsonString = "";
+            jsonString = queryApi("https://en.wikipedia.org/api/rest_v1/page/summary/" + title);
+
+            Log.d(TAG, "parseJSON");
+            String[] resultArr  = {"", ""};
+            if( jsonString == "not found"){
+                return resultArr;
+            }
+            JSONObject jsonObject;
+            try {
+                jsonObject = new JSONObject(jsonString);
+                resultArr[0] = jsonObject.get("extract").toString();
+                resultArr[1] = jsonObject.getJSONObject("content_urls").getJSONObject("desktop").getString("page");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return resultArr;
         }
     }
 
