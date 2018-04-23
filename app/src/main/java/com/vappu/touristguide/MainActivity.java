@@ -182,8 +182,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startService() {
+        Log.d(TAG, "startService: ");
         Intent intent = new Intent(this, LocationService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE );
+        intent.setAction(LocationService.START_SERVICE);
+        if(!mIsServiceRunning) {
+            mIsServiceRunning = true;
+            startService(intent);
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        }
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {

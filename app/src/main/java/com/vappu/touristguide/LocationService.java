@@ -46,6 +46,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -60,9 +61,12 @@ public class LocationService extends Service {
 
     // define TAG for logs
     private static final String TAG = LocationService.class.getSimpleName();
+    public static final String STOP_SERVICE = "stop_service";
+    public static final String START_SERVICE = "start_service";
 
     // default location which will be used if location unavailable
     public final LatLng mDefaultLocation = new LatLng(52.949591, -1.154830);
+    private final int NOTIFID = 3;
 
     private PlaceDetectionClient mPlaceDetectionClient;
     private LocationCallback mLocationCallBack;
@@ -80,6 +84,16 @@ public class LocationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand: ");
+
+        if (Objects.equals(intent.getAction(), STOP_SERVICE)){
+            Log.d(TAG, "onStartCommand: stop");
+            stopForeground(true);
+            notificationManager.cancelAll();
+            stopSelf();
+        }
+
+
         return START_STICKY;
     }
 
@@ -87,6 +101,7 @@ public class LocationService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
+        startForeground(NOTIFID, createNotification());
 
         mTypesList = new ArrayList<>();
         mFoodList = new ArrayList<>();
@@ -223,27 +238,34 @@ public class LocationService extends Service {
 
     }
 
-    public void createNotification() {
+    public Notification createNotification() {
         Log.d(TAG, "service createNotification");
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 , notificationIntent, 0);
+
+        Intent stopServiceIntent = new Intent(this, LocationService.class);
+        stopServiceIntent.setAction(STOP_SERVICE);
+        PendingIntent stopServicePendingIntent = PendingIntent.getService(this, 0, stopServiceIntent, 0);
+
         Notification notification = new NotificationCompat.Builder(this, "channelID")
                 .setTicker(("message"))
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setContentTitle("Tourist guide")
                 .setContentText("Running in the background")
                 .setOngoing(true)
-                .setContentIntent(pi)
+                .setContentIntent(pendingIntent)
                 .setPriority(PRIORITY_MIN)
                 .setAutoCancel(false)
+                .addAction(R.drawable.ic_close, "Close", stopServicePendingIntent)
                 .build();
-
 
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (notificationManager != null) {
-            notificationManager.notify(0, notification);
+            notificationManager.notify(NOTIFID, notification);
         }
+        return notification;
     }
 
     private boolean isDuplicate(String placeID) {
@@ -345,7 +367,6 @@ public class LocationService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "service onUnbind");
-        stopSelf();
         return super.onUnbind(intent);
     }
 
@@ -387,10 +408,7 @@ public class LocationService extends Service {
             // wikipedia's dated titles are often fairly recent events
             // such as 2011 Anti-cut protest, 2012 Summer Olympics Triathlon etc
 
-            if( title.matches(".*\\d+.*") ){
-                return false;
-            }
-            else { return true; }
+            return !title.matches(".*\\d+.*");
         }
 
         // JSON passed as a String, parse the content of the desired identifier
