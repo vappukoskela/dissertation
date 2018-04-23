@@ -91,8 +91,8 @@ public class LocationService extends Service {
             stopForeground(true);
             notificationManager.cancelAll();
             stopSelf();
+            return START_NOT_STICKY;
         }
-
 
         return START_STICKY;
     }
@@ -101,7 +101,6 @@ public class LocationService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
-        startForeground(NOTIFID, createNotification());
 
         mTypesList = new ArrayList<>();
         mFoodList = new ArrayList<>();
@@ -125,8 +124,7 @@ public class LocationService extends Service {
             channelID = "serviceID";
             createNotificationChannel(importance, name, description, channelID);
         }
-
-        createNotification();
+        startForeground(NOTIFID, createNotification());
 
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
