@@ -177,7 +177,7 @@ public class MapActivity extends AppCompatActivity
     };
 
     private void addMarker(String title, LatLng pos, String id, int type){
-        if ( !markerHashMap.containsKey(id)) {
+        if ( !markerHashMap.containsKey(id) && pos != null) {
             Marker marker;
             if( type == TYPE_WIKI) {
                 marker = mMap.addMarker(new MarkerOptions().position(pos).title(title));

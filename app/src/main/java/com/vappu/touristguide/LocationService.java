@@ -10,6 +10,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.os.AsyncTask;
 import android.os.Binder;
@@ -283,7 +284,10 @@ public class LocationService extends Service {
     public void createInfoNotification(String placeID, String title) {
         // if the place was in previous 10 places, then do not send notification for it
 
+        Log.d(TAG, "createInfoNotification: " + title);
+
         if (!isDuplicate(placeID)) {
+            Log.d(TAG, "createInfoNotification: not duplicate");
             Intent intent = new Intent(this, InfoActivity.class);
             intent.putExtra("ID", placeID);
             intent.putExtra("title", title);
@@ -297,7 +301,7 @@ public class LocationService extends Service {
                     .setContentText(title)
                     .setContentIntent(pi)
                     .setPriority(PRIORITY_HIGH)
-                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), AudioAttributes.USAGE_NOTIFICATION)
                     .setAutoCancel(true)
                     .build();
 
